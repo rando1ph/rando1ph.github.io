@@ -3,10 +3,108 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Randolph</title>
+  <meta name="description" content="RANDOLF — a personal index of design and code. Phase 01 of an evolving digital identity.">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>RANDOLF — Personal Index</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3 L20 12 L12 21 L4 12 Z' fill='%23c9f44d'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-  <h1>Randolph</h1>
-  <p>Welcome to my little corner of the internet.</p>
+
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-noise" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="brand" href="#top">RANDOLF<span class="brand-dot">.</span></a>
+    <nav class="site-nav" aria-label="Primary">
+      <ul>
+        <li><a href="#index">Index</a></li>
+        <li><a href="#info">Info</a></li>
+        <li class="nav-clock"><span data-clock>--:--:-- GMT</span></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="top">
+
+    <section class="hero">
+      <div class="hero-inner">
+        <p class="eyebrow reveal" style="--d:.1s">Randolf.dev — Personal Index · Est. 2026</p>
+
+        <h1 class="hero-title" aria-label="Randolf">
+          <span class="hero-ghost" aria-hidden="true">RANDOLF</span>
+          <span class="hero-line" aria-hidden="true">
+            <span class="hero-char" style="--d:.14s"><span>R</span></span><span class="hero-char" style="--d:.19s"><span>A</span></span><span class="hero-char" style="--d:.24s"><span>N</span></span><span class="hero-char" style="--d:.29s"><span>D</span></span><span class="hero-char" style="--d:.34s"><span>O</span></span><span class="hero-char" style="--d:.39s"><span>L</span></span><span class="hero-char" style="--d:.44s"><span>F</span></span>
+          </span>
+          <span class="hero-cursor" aria-hidden="true"></span>
+        </h1>
+
+        <p class="hero-sub reveal" style="--d:.6s">A personal index of design, code and the space between.</p>
+      </div>
+
+      <figure class="sigil" aria-hidden="true">
+        <svg viewBox="0 0 240 240">
+          <circle class="sigil-orbit" cx="120" cy="112" r="92" fill="none"/>
+          <g class="sigil-lines" fill="none">
+            <path d="M66 150 L120 84 L174 150"/>
+            <path d="M94 150 L120 116 L146 150"/>
+            <path d="M40 150 H200"/>
+            <path d="M120 150 V202"/>
+          </g>
+          <path class="sigil-core" d="M120 68 L134 84 L120 100 L106 84 Z"/>
+        </svg>
+      </figure>
+
+      <div class="hero-foot reveal" style="--d:.8s">
+        <span class="hero-foot-line" aria-hidden="true"></span>
+        <span class="mono">Scroll</span>
+      </div>
+    </section>
+
+    <section class="section" id="index">
+      <div class="section-head reveal">
+        <p class="section-label mono">01 / Index</p>
+        <h2 class="section-title">Selected entries</h2>
+      </div>
+
+      <ul class="index-list">
+        <li class="index-row reveal">
+          <span class="index-num mono">001</span>
+          <span class="index-name">Selected work</span>
+          <span class="index-status mono">TBA</span>
+        </li>
+        <li class="index-row reveal" style="--d:.08s">
+          <span class="index-num mono">002</span>
+          <span class="index-name">Notes &amp; writing</span>
+          <span class="index-status mono">TBA</span>
+        </li>
+        <li class="index-row reveal" style="--d:.16s">
+          <span class="index-num mono">003</span>
+          <span class="index-name">Archive</span>
+          <span class="index-status mono">TBA</span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="section section-info" id="info">
+      <div class="section-head reveal">
+        <p class="section-label mono">02 / Info</p>
+        <h2 class="section-title">Under construction</h2>
+      </div>
+      <p class="statement reveal">
+        Randolf.dev is an evolving personal index. This page is the first visual
+        phase — a baseline to be built upon. Content, writing and work will land here over time.
+      </p>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="mono">© <span data-year>2026</span> RANDOLF.DEV</div>
+    <div class="mono">Plain HTML / CSS / JS — Phase 01</div>
+    <div class="mono" data-clock>--:--:-- GMT</div>
+  </footer>
+
+  <script src="assets/js/main.js"></script>
 </body>
 </html>
