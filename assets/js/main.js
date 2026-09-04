@@ -56,8 +56,127 @@
     el.textContent = new Date().getFullYear();
   });
 
-  /* --- Mouse parallax (desktop, fine pointer only) -------------- */
-  if (!reduceMotion && finePointer) {
+  /* --- Hero name evolution --------------------------------------- */
+  var nameLine = document.querySelector(".hero-line");
+  var heroGhost = document.querySelector(".hero-ghost");
+
+  if (nameLine && reduceMotion) {
+    // No perpetual animation: show both name forms once, statically.
+    // A no-break space after the slash keeps the two names together on a line.
+    nameLine.textContent = "RANDOLF /\u00A0RANDOLPH";
+  } else if (nameLine) {
+    var FORMS = ["Randúlfr", "Randulf", "Randolf", "Randolph"];
+    var ERASE_MS = 55;
+    var TYPE_MS = 75;
+    var cur = "";
+
+    function show(text) {
+      cur = text;
+      nameLine.textContent = text;
+      if (heroGhost) {
+        heroGhost.textContent = text;
+      }
+    }
+
+    function commonPrefixLen(a, b) {
+      var i = 0;
+      var n = Math.min(a.length, b.length);
+      while (i < n && a[i] === b[i]) {
+        i += 1;
+      }
+      return i;
+    }
+
+    function entrance(word) {
+      var html = "";
+      var delay;
+      for (var i = 0; i < word.length; i += 1) {
+        delay = (0.12 + i * 0.05).toFixed(2);
+        html +=
+          '<span class="hero-char" style="--d:' +
+          delay +
+          's"><span>' +
+          word[i] +
+          "</span></span>";
+      }
+      nameLine.innerHTML = html;
+    }
+
+    function morphTo(target, done) {
+      var keep = commonPrefixLen(cur, target);
+      var from = cur;
+
+      function eraseStep(k) {
+        if (k > keep) {
+          k -= 1;
+          show(from.slice(0, k));
+          setTimeout(function () {
+            eraseStep(k);
+          }, ERASE_MS);
+        } else {
+          typeStep(keep);
+        }
+      }
+
+      function typeStep(k) {
+        if (k < target.length) {
+          k += 1;
+          show(target.slice(0, k));
+          setTimeout(function () {
+            typeStep(k);
+          }, TYPE_MS);
+        } else {
+          done();
+        }
+      }
+
+      eraseStep(cur.length);
+    }
+
+    // Entrance: characters of the oldest form rise in one by one.
+    // The ghost echo stays empty until the characters have risen, so the
+    // outlined text does not cross the rising glyphs.
+    entrance(FORMS[0]);
+    if (heroGhost) {
+      heroGhost.textContent = "";
+    }
+
+    // Once risen, flatten the characters and play the historical evolution,
+    // then settle into a slow, calm alternation between RANDOLF and RANDOLPH.
+    setTimeout(function () {
+      show(FORMS[0]);
+      setTimeout(playHistory, 1200);
+    }, 1550);
+
+    var step = 1;
+
+    function playHistory() {
+      if (step < FORMS.length) {
+        var target = FORMS[step];
+        var isLast = step === FORMS.length - 1;
+        step += 1;
+        morphTo(target, function () {
+          setTimeout(playHistory, isLast ? 3200 : 1700);
+        });
+      } else {
+        settle();
+      }
+    }
+
+    function settle() {
+      function flip(target) {
+        morphTo(target, function () {
+          setTimeout(function () {
+            flip(target === FORMS[2] ? FORMS[3] : FORMS[2]);
+          }, 3000);
+        });
+      }
+      flip(FORMS[2]);
+    }
+  }
+
+  /* --- Mouse parallax (wide screens, fine pointer only) ---------- */
+  if (!reduceMotion && finePointer && window.innerWidth > 900) {
     var sigil = document.querySelector(".sigil");
     var title = document.querySelector(".hero-title");
     if (sigil && title) {

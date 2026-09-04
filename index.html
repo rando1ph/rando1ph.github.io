@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="RANDOLF — a personal index of design and code. Phase 01 of an evolving digital identity.">
+  <meta name="description" content="Randolf.dev — a personal digital index containing browser games, a concise daily news briefing, Hermes and other things that may grow over time.">
   <meta name="theme-color" content="#0a0a0c">
   <title>RANDOLF — Personal Index</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3 L20 12 L12 21 L4 12 Z' fill='%23c9f44d'/%3E%3C/svg%3E">
@@ -15,11 +15,12 @@
   <div class="bg-noise" aria-hidden="true"></div>
 
   <header class="site-header">
-    <a class="brand" href="#top">RANDOLF<span class="brand-dot">.</span></a>
+    <a class="brand" href="./">RANDOLF<span class="brand-dot">.</span></a>
     <nav class="site-nav" aria-label="Primary">
       <ul>
-        <li><a href="#index">Index</a></li>
-        <li><a href="#info">Info</a></li>
+        <li><a href="games/">Games</a></li>
+        <li><a href="news/">News</a></li>
+        <li><a href="hermes/">Hermes</a></li>
         <li class="nav-clock"><span data-clock>--:--:-- GMT</span></li>
       </ul>
     </nav>
@@ -29,17 +30,15 @@
 
     <section class="hero">
       <div class="hero-inner">
-        <p class="eyebrow reveal" style="--d:.1s">Randolf.dev — Personal Index · Est. 2026</p>
+        <p class="eyebrow reveal" style="--d:.1s">Randolf.dev — Personal Index</p>
 
-        <h1 class="hero-title" aria-label="Randolf">
+        <h1 class="hero-title" aria-label="Randolf / Randolph">
           <span class="hero-ghost" aria-hidden="true">RANDOLF</span>
-          <span class="hero-line" aria-hidden="true">
-            <span class="hero-char" style="--d:.14s"><span>R</span></span><span class="hero-char" style="--d:.19s"><span>A</span></span><span class="hero-char" style="--d:.24s"><span>N</span></span><span class="hero-char" style="--d:.29s"><span>D</span></span><span class="hero-char" style="--d:.34s"><span>O</span></span><span class="hero-char" style="--d:.39s"><span>L</span></span><span class="hero-char" style="--d:.44s"><span>F</span></span>
-          </span>
+          <span class="hero-line" id="heroName" aria-hidden="true">RANDOLF</span>
           <span class="hero-cursor" aria-hidden="true"></span>
         </h1>
 
-        <p class="hero-sub reveal" style="--d:.6s">A personal index of design, code and the space between.</p>
+        <p class="hero-sub reveal" style="--d:.6s">A quiet personal index that keeps growing — small games, a daily news briefing and Hermes.</p>
       </div>
 
       <figure class="sigil" aria-hidden="true">
@@ -64,36 +63,51 @@
     <section class="section" id="index">
       <div class="section-head reveal">
         <p class="section-label mono">01 / Index</p>
-        <h2 class="section-title">Selected entries</h2>
+        <h2 class="section-title">What lives here</h2>
       </div>
 
       <ul class="index-list">
-        <li class="index-row reveal">
-          <span class="index-num mono">001</span>
-          <span class="index-name">Selected work</span>
-          <span class="index-status mono">TBA</span>
+        <li class="reveal">
+          <a class="index-row" href="games/">
+            <span class="index-num mono">001</span>
+            <span class="index-main">
+              <span class="index-name">Games</span>
+              <span class="index-desc">Browser games and small interactive experiments.</span>
+            </span>
+            <span class="index-go" aria-hidden="true">→</span>
+          </a>
         </li>
-        <li class="index-row reveal" style="--d:.08s">
-          <span class="index-num mono">002</span>
-          <span class="index-name">Notes &amp; writing</span>
-          <span class="index-status mono">TBA</span>
+        <li class="reveal" style="--d:.08s">
+          <a class="index-row" href="news/">
+            <span class="index-num mono">002</span>
+            <span class="index-main">
+              <span class="index-name">News</span>
+              <span class="index-desc">A concise daily briefing in clear English.</span>
+            </span>
+            <span class="index-go" aria-hidden="true">→</span>
+          </a>
         </li>
-        <li class="index-row reveal" style="--d:.16s">
-          <span class="index-num mono">003</span>
-          <span class="index-name">Archive</span>
-          <span class="index-status mono">TBA</span>
+        <li class="reveal" style="--d:.16s">
+          <a class="index-row" href="hermes/">
+            <span class="index-num mono">003</span>
+            <span class="index-main">
+              <span class="index-name">Hermes</span>
+              <span class="index-desc">A personal AI agent, useful skills and occasional ideas.</span>
+            </span>
+            <span class="index-go" aria-hidden="true">→</span>
+          </a>
         </li>
       </ul>
     </section>
 
     <section class="section section-info" id="info">
       <div class="section-head reveal">
-        <p class="section-label mono">02 / Info</p>
-        <h2 class="section-title">Under construction</h2>
+        <p class="section-label mono">02 / Note</p>
+        <h2 class="section-title">A growing space</h2>
       </div>
       <p class="statement reveal">
-        Randolf.dev is an evolving personal index. This page is the first visual
-        phase — a baseline to be built upon. Content, writing and work will land here over time.
+        randolf.dev is a small personal digital space that grows over time.
+        For now it holds Games, News and Hermes — and whatever quietly lands here next.
       </p>
     </section>
 
@@ -101,7 +115,7 @@
 
   <footer class="site-footer">
     <div class="mono">© <span data-year>2026</span> RANDOLF.DEV</div>
-    <div class="mono">Plain HTML / CSS / JS — Phase 01</div>
+    <div class="mono">Built by hand — HTML · CSS · JS</div>
     <div class="mono" data-clock>--:--:-- GMT</div>
   </footer>
 

@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
-   RANDOLF — Phase 01
+   RANDOLF — Personal index
    Dark, minimal, experimental digital identity.
    ------------------------------------------------------------------ */
 
@@ -29,6 +29,7 @@
 html {
   color-scheme: dark;
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
@@ -336,12 +337,12 @@ main {
 
 .index-row {
   display: grid;
-  grid-template-columns: 4rem 1fr auto;
+  grid-template-columns: 4rem minmax(0, 1fr) auto;
   align-items: baseline;
-  gap: 1rem;
+  gap: 1rem 1.5rem;
   padding: clamp(1.25rem, 2.5vw, 2rem) 0;
   border-bottom: 1px solid var(--line);
-  cursor: default;
+  cursor: pointer;
   transition: background 0.4s var(--ease), padding 0.4s var(--ease);
 }
 
@@ -354,10 +355,36 @@ main {
   color: var(--accent);
 }
 
+.index-main {
+  display: block;
+  min-width: 0;
+}
+
 .index-name {
+  display: block;
   font-size: clamp(1.05rem, 2vw, 1.5rem);
   font-weight: 600;
   letter-spacing: 0.01em;
+}
+
+.index-desc {
+  display: block;
+  margin-top: 0.3rem;
+  max-width: 40rem;
+  font-size: clamp(0.8rem, 1.2vw, 0.92rem);
+  color: var(--muted);
+}
+
+.index-go {
+  justify-self: end;
+  align-self: center;
+  color: var(--accent);
+  font-size: 1.15rem;
+  transition: transform 0.35s var(--ease);
+}
+
+.index-row:hover .index-go {
+  transform: translateX(0.25rem);
 }
 
 .index-status {
@@ -527,12 +554,11 @@ main {
   .nav-clock { display: none; }
 
   .index-row {
-    grid-template-columns: 2.75rem 1fr;
+    grid-template-columns: 2.75rem minmax(0, 1fr) auto;
   }
 
-  .index-status {
-    grid-column: 2;
-    justify-self: start;
+  .index-desc {
+    font-size: 0.78rem;
   }
 
   .hero-sub {
@@ -552,4 +578,292 @@ a:focus-visible,
 .brand:focus-visible {
   outline: 1px solid var(--accent);
   outline-offset: 3px;
+}
+
+/* ------------------------------------------------------------------
+   Hero name evolution
+   ------------------------------------------------------------------ */
+
+.hero-line {
+  display: inline-block;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.site-nav a[aria-current="page"] {
+  color: var(--fg);
+}
+
+/* Keep the 8-letter name forms inside the hero on narrow screens. */
+@media (max-width: 400px) {
+  .hero-title {
+    font-size: clamp(2.5rem, 12.5vw, 3.4rem);
+  }
+}
+
+/* ------------------------------------------------------------------
+   Reduced motion — static name forms, no perpetual animation
+   ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-line {
+    white-space: normal;
+  }
+
+  .hero-title {
+    font-size: clamp(2.4rem, 7.5vw, 6rem);
+    line-height: 1.05;
+  }
+
+  .hero-ghost,
+  .hero-cursor,
+  .sigil {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Subpages — shared layout
+   ------------------------------------------------------------------ */
+
+.page {
+  position: relative;
+  z-index: 1;
+  padding: clamp(6.5rem, 12vh, 9rem) clamp(1.25rem, 4vw, 3.5rem) clamp(3rem, 6vw, 5.5rem);
+}
+
+.page-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-head {
+  margin-bottom: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+.page-title {
+  margin: 0.6rem 0 1.4rem;
+  font-size: clamp(2.6rem, 8vw, 6.5rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.page-lede {
+  max-width: 46rem;
+  font-size: clamp(1.05rem, 1.9vw, 1.35rem);
+  color: var(--muted);
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+}
+
+.crumbs a {
+  color: var(--muted);
+  transition: color 0.3s var(--ease);
+}
+
+.crumbs a:hover,
+.crumbs a:focus-visible {
+  color: var(--fg);
+}
+
+.crumb-arr {
+  color: var(--accent);
+}
+
+.crumb-sep {
+  color: var(--dim);
+}
+
+.block {
+  padding: clamp(2.5rem, 5vw, 4rem) 0;
+  border-top: 1px solid var(--line);
+}
+
+.block-head {
+  margin-bottom: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.block-title {
+  font-size: clamp(1.3rem, 2.4vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.para {
+  max-width: 52rem;
+  margin: 0 0 1.1rem;
+  color: var(--fg);
+}
+
+.para:last-child {
+  margin-bottom: 0;
+}
+
+/* ------------------------------------------------------------------
+   Empty placeholder state (games, news, ideas)
+   ------------------------------------------------------------------ */
+
+.empty {
+  padding: clamp(1.75rem, 4vw, 2.75rem) 0;
+  border-top: 1px solid var(--line);
+}
+
+.empty-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.empty-note {
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------------
+   Capability rows (Hermes)
+   ------------------------------------------------------------------ */
+
+.cap-list {
+  border-top: 1px solid var(--line);
+}
+
+.cap-item {
+  display: grid;
+  grid-template-columns: minmax(11rem, 16rem) minmax(0, 1fr);
+  column-gap: 2rem;
+  row-gap: 0.35rem;
+  padding: 1.05rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.cap-name {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding-top: 0.15em;
+}
+
+.cap-desc {
+  color: var(--fg);
+  opacity: 0.92;
+}
+
+@media (max-width: 620px) {
+  .cap-item {
+    grid-template-columns: 1fr;
+    row-gap: 0.25rem;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Legal pages (privacy / terms)
+   ------------------------------------------------------------------ */
+
+.legal {
+  max-width: 52rem;
+}
+
+.updated {
+  display: block;
+  margin-bottom: 2rem;
+}
+
+.legal p {
+  margin-bottom: 1.1rem;
+  color: var(--fg);
+}
+
+.legal ul {
+  margin: 0 0 1.4rem;
+  list-style: none;
+}
+
+.legal li {
+  position: relative;
+  margin: 0 0 0.6rem;
+  padding-left: 1.3rem;
+}
+
+.legal li::before {
+  content: "\2014";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+.legal a {
+  text-decoration: underline;
+  text-decoration-color: var(--dim);
+  text-underline-offset: 3px;
+  transition: color 0.3s var(--ease), text-decoration-color 0.3s var(--ease);
+}
+
+.legal a:hover {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+}
+
+/* ------------------------------------------------------------------
+   Hermes easter-egg entry (kept intentionally understated)
+   ------------------------------------------------------------------ */
+
+.egg {
+  display: inline-flex;
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+  padding: 0.2rem 0.4rem;
+  color: var(--dim);
+  font-size: 1rem;
+  line-height: 1;
+  transition: color 0.3s var(--ease);
+}
+
+.egg:hover,
+.egg:focus-visible {
+  color: var(--accent);
+}
+
+/* ------------------------------------------------------------------
+   Hermes reserved space
+   ------------------------------------------------------------------ */
+
+.page-space {
+  padding-top: clamp(9rem, 22vh, 14rem);
+  padding-bottom: clamp(6rem, 14vh, 11rem);
+}
+
+.space-title {
+  margin-bottom: 2rem;
+  font-size: clamp(4rem, 15vw, 11rem);
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(236, 236, 240, 0.32);
+  text-shadow: 0 0 60px rgba(236, 236, 240, 0.06);
+}
+
+.space-line {
+  max-width: 34rem;
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  font-weight: 500;
+}
+
+.space-note {
+  margin-top: 1rem;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .space-title {
+    color: var(--fg);
+    -webkit-text-stroke: 0;
+  }
 }
