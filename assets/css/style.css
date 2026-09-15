@@ -725,3 +725,644 @@ a:focus-visible,
   color: var(--muted);
 }
 
+/* ------------------------------------------------------------------
+   Games — release list
+   ------------------------------------------------------------------ */
+
+.release-list {
+  border-top: 1px solid var(--line);
+}
+
+.release-item {
+  border-bottom: 1px solid var(--line);
+}
+
+.release-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+  padding: clamp(1.25rem, 2.5vw, 2rem) 0;
+  transition: background 0.4s var(--ease), padding 0.4s var(--ease);
+}
+
+.release-link:hover {
+  background: linear-gradient(90deg, rgba(201, 244, 77, 0.05), transparent 60%);
+  padding-left: 1rem;
+}
+
+.release-name {
+  display: block;
+  font-size: clamp(1.05rem, 2vw, 1.5rem);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.release-desc {
+  display: block;
+  margin-top: 0.3rem;
+  max-width: 40rem;
+  font-size: clamp(0.8rem, 1.2vw, 0.92rem);
+  color: var(--muted);
+}
+
+.release-alt {
+  margin-left: 0.4rem;
+  font-size: 0.7em;
+  font-weight: 400;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+
+.release-tag {
+  justify-self: end;
+  align-self: center;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid rgba(201, 244, 77, 0.4);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 10px;
+}
+
+/* ------------------------------------------------------------------
+   Minesweeper
+   ------------------------------------------------------------------ */
+
+.ms {
+  --cell: 32px;
+  --ms-gap: 2px;
+}
+
+/* Board scale per difficulty — Beginner gets room to breathe, Expert stays
+   compact rather than being blown up. */
+.ms[data-diff="beginner"] { --cell: 44px; }
+.ms[data-diff="intermediate"] { --cell: 38px; }
+.ms[data-diff="expert"] { --cell: 32px; }
+
+/* Author display rules would otherwise beat the [hidden] attribute. */
+.ms [hidden] {
+  display: none;
+}
+
+/* Trim dead vertical space on the game page so the board sits higher. */
+.ms-page .page-head {
+  margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.ms-page .page-title {
+  margin-bottom: 0.8rem;
+}
+
+.ms-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.ms-difficulty {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ms-controls-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ms-diff,
+.ms-restart,
+.ms-stats-toggle {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 0.6rem 0.9rem;
+  cursor: pointer;
+  transition: color 0.3s var(--ease), border-color 0.3s var(--ease),
+    background 0.3s var(--ease);
+}
+
+.ms-diff:hover,
+.ms-restart:hover,
+.ms-stats-toggle:hover {
+  color: var(--fg);
+  border-color: var(--muted);
+}
+
+.ms-diff[aria-pressed="true"] {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.ms-stats-toggle[aria-expanded="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.ms-restart {
+  color: var(--fg);
+  border-color: rgba(201, 244, 77, 0.4);
+}
+
+.ms-restart:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.ms-diff:focus-visible,
+.ms-restart:focus-visible,
+.ms-stats-toggle:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.ms-hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.75rem;
+  margin-bottom: 1.25rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--bg-2);
+}
+
+.ms-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 4.25rem;
+}
+
+.ms-stat-label {
+  font-size: 10px;
+}
+
+.ms-stat-value {
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  color: var(--fg);
+  transition: color 0.25s var(--ease);
+}
+
+.ms-stat-secondary .ms-stat-value {
+  color: var(--muted);
+}
+
+.ms-stat-value[data-result="won"] {
+  color: var(--accent);
+}
+
+.ms-stat-value[data-result="lost"] {
+  color: #ff7a7a;
+}
+
+.ms-stat-status .ms-stat-value[data-status="won"] {
+  color: var(--accent);
+}
+
+.ms-stat-status .ms-stat-value[data-status="lost"] {
+  color: #ff7a7a;
+}
+
+@media (min-width: 760px) {
+  .ms-stat-status {
+    margin-left: auto;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Minesweeper — result panel
+   ------------------------------------------------------------------ */
+
+.ms-result {
+  display: grid;
+  gap: 0.9rem;
+  justify-items: start;
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(201, 244, 77, 0.3);
+  border-left: 3px solid var(--accent);
+  border-radius: 2px;
+  background: var(--bg-2);
+}
+
+.ms-result[hidden] {
+  display: none;
+}
+
+.ms-result[data-result="lost"] {
+  border-color: rgba(255, 122, 122, 0.3);
+  border-left-color: #ff7a7a;
+}
+
+.ms-result.is-shown {
+  animation: ms-result-in 260ms var(--ease) both;
+}
+
+.ms-result-title {
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+}
+
+.ms-result[data-result="lost"] .ms-result-title {
+  color: #ff7a7a;
+}
+
+.ms-result-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.75rem;
+}
+
+.ms-result-new {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+}
+
+.ms-result-new[hidden] {
+  display: none;
+}
+
+.ms-result.is-shown .ms-result-new:not([hidden]) {
+  animation: ms-newbest 800ms var(--ease) both;
+}
+
+.ms-playagain {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  padding: 0.65rem 1.1rem;
+  cursor: pointer;
+  transition: opacity 0.2s var(--ease);
+}
+
+.ms-playagain:hover {
+  opacity: 0.85;
+}
+
+.ms-playagain:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* ------------------------------------------------------------------
+   Minesweeper — local statistics panel
+   ------------------------------------------------------------------ */
+
+.ms-stats-panel {
+  margin-top: 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--bg-2);
+}
+
+.ms-stats-panel[hidden] {
+  display: none;
+}
+
+.ms-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1.25rem;
+}
+
+.ms-stats-block {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+}
+
+.ms-stats-name {
+  margin-bottom: 0.2rem;
+  color: var(--accent);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+}
+
+.ms-stats-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ms-stats-row span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ms-stats-row span:last-child {
+  color: var(--fg);
+}
+
+.ms-stats-foot {
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+.ms-stats-reset {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+  transition: color 0.3s var(--ease), border-color 0.3s var(--ease);
+}
+
+.ms-stats-reset:hover {
+  color: var(--fg);
+  border-color: var(--muted);
+}
+
+.ms-stats-reset.is-confirming {
+  color: #ff7a7a;
+  border-color: rgba(255, 122, 122, 0.5);
+}
+
+.ms-stats-reset:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.ms-board-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+
+.ms-board {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--cell));
+  grid-auto-rows: var(--cell);
+  gap: var(--ms-gap);
+  width: max-content;
+  margin: 0 auto;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ms-board.is-entering {
+  animation: ms-board-in 220ms var(--ease) both;
+}
+
+.ms-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: calc(var(--cell) * 0.5);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--fg);
+  background: #1a1a20;
+  border: 1px solid rgba(236, 236, 240, 0.06);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background-color 0.14s ease, border-color 0.14s ease,
+    color 0.14s ease;
+}
+
+.ms-cell:hover {
+  background: #22222a;
+}
+
+.ms-cell.is-revealed {
+  background: #101015;
+  border-color: rgba(236, 236, 240, 0.04);
+  cursor: default;
+}
+
+.ms-cell.is-flagged {
+  background: #1a1a20;
+}
+
+.ms-cell.is-mine {
+  background: #1c1216;
+}
+
+.ms-cell.is-exploded {
+  background: #3a0f12;
+  border-color: #ff4d4d;
+  box-shadow: inset 0 0 0 2px #ff4d4d;
+}
+
+.ms-cell.is-wrong {
+  background: #1c1216;
+}
+
+.ms-cell.is-mine::before,
+.ms-cell.is-flagged::before,
+.ms-cell.is-wrong::before {
+  content: "";
+  display: block;
+  width: 62%;
+  height: 62%;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.ms-cell.is-mine::before {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cg%20stroke%3D%22%23ff7a7a%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%3E%3Cline%20x1%3D%2212%22%20y1%3D%222%22%20x2%3D%2212%22%20y2%3D%2222%22%2F%3E%3Cline%20x1%3D%222%22%20y1%3D%2212%22%20x2%3D%2222%22%20y2%3D%2212%22%2F%3E%3Cline%20x1%3D%225%22%20y1%3D%225%22%20x2%3D%2219%22%20y2%3D%2219%22%2F%3E%3Cline%20x1%3D%2219%22%20y1%3D%225%22%20x2%3D%225%22%20y2%3D%2219%22%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224.5%22%20fill%3D%22%23ff7a7a%22%2F%3E%3C%2Fsvg%3E");
+}
+
+.ms-cell.is-flagged::before {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M7%2021%20V3%22%20stroke%3D%22%23c9f44d%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M7%204%20L18%207%20L7%2010%20Z%22%20fill%3D%22%23c9f44d%22%2F%3E%3C%2Fsvg%3E");
+}
+
+.ms-cell.is-wrong::before {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M6%206%20L18%2018%20M18%206%20L6%2018%22%20stroke%3D%22%23ff7a7a%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E");
+}
+
+.ms-cell.is-flagged::before {
+  animation: ms-flag-pop 180ms var(--ease) both;
+}
+
+/* --- Game-end feedback: win sweep + lose impact ------------------ */
+
+.ms-board.is-won {
+  box-shadow: 0 0 0 1px rgba(201, 244, 77, 0.22),
+    0 0 46px rgba(201, 244, 77, 0.07);
+}
+
+.ms-board.is-won::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 32%,
+    rgba(201, 244, 77, 0.16) 50%,
+    transparent 68%
+  );
+  transform: translateX(-120%);
+  animation: ms-sweep 700ms var(--ease) 120ms both;
+}
+
+.ms-board.is-won .ms-cell.is-revealed {
+  animation: ms-win-pulse 520ms ease-out both;
+  animation-delay: calc(min(var(--ms-i, 0), 40) * 6ms);
+}
+
+.ms-board.is-shaking {
+  animation: ms-shake 280ms ease-out;
+}
+
+.ms-board.is-lost .ms-cell.is-mine:not(.is-exploded) {
+  animation: ms-mine-in 200ms ease-out both;
+}
+
+.ms-cell.is-exploded {
+  animation: ms-explode 340ms ease-out both;
+}
+
+@keyframes ms-board-in {
+  from { opacity: 0; transform: scale(0.992); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes ms-result-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes ms-sweep {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(120%); }
+}
+
+@keyframes ms-win-pulse {
+  0% { background: #101015; }
+  40% { background: rgba(201, 244, 77, 0.14); }
+  100% { background: #101015; }
+}
+
+@keyframes ms-explode {
+  0% {
+    background: #ff4d4d;
+    box-shadow: inset 0 0 0 2px #ff4d4d, 0 0 18px rgba(255, 77, 77, 0.6);
+  }
+  100% {
+    background: #3a0f12;
+    box-shadow: inset 0 0 0 2px #ff4d4d;
+  }
+}
+
+@keyframes ms-mine-in {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes ms-flag-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+@keyframes ms-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-3px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
+@keyframes ms-newbest {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.ms-cell.n1 { color: #7fb8ff; }
+.ms-cell.n2 { color: #7ee787; }
+.ms-cell.n3 { color: #ff9f6e; }
+.ms-cell.n4 { color: #c792ea; }
+.ms-cell.n5 { color: #ffd166; }
+.ms-cell.n6 { color: #6ee7e7; }
+.ms-cell.n7 { color: #f0f0f5; }
+.ms-cell.n8 { color: #b0b0bd; }
+
+.ms-help {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.ms-help .para {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .ms[data-diff="beginner"] { --cell: 34px; }
+  .ms[data-diff="intermediate"] { --cell: 30px; }
+  .ms[data-diff="expert"] { --cell: 30px; }
+
+  .ms-hud {
+    gap: 0.6rem 1.1rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .ms-stat-secondary {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-cell,
+  .ms-diff,
+  .ms-restart,
+  .ms-stats-toggle,
+  .release-link {
+    transition: none;
+  }
+
+  .ms-board.is-entering,
+  .ms-board.is-shaking,
+  .ms-board.is-won::after,
+  .ms-board.is-won .ms-cell.is-revealed,
+  .ms-board.is-lost .ms-cell.is-mine:not(.is-exploded),
+  .ms-cell.is-exploded,
+  .ms-cell.is-flagged::before,
+  .ms-result.is-shown,
+  .ms-result.is-shown .ms-result-new:not([hidden]) {
+    animation: none !important;
+    animation-delay: 0s !important;
+  }
+
+  .ms-board.is-won {
+    box-shadow: 0 0 0 1px rgba(201, 244, 77, 0.28);
+  }
+}
+
