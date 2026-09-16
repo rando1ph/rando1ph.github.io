@@ -299,7 +299,13 @@
     for (var r = 0; r < state.rows; r += 1) {
       var row = [];
       for (var c = 0; c < state.cols; c += 1) {
-        row.push({ mine: false, revealed: false, flagged: false, adjacent: 0 });
+        row.push({
+          mine: false,
+          revealed: false,
+          flagged: false,
+          questioned: false,
+          adjacent: 0
+        });
       }
       state.board.push(row);
     }
@@ -421,7 +427,9 @@
     }
   }
 
-  function toggleFlag(r, c) {
+  /* Classic three-state mark cycle: unmarked → flag → question → unmarked.
+     Only flagged cells count toward MINES LEFT and chord. */
+  function cycleMark(r, c) {
     if (!isPlayable()) {
       return;
     }
@@ -429,10 +437,41 @@
     if (cell.revealed) {
       return;
     }
-    cell.flagged = !cell.flagged;
-    state.flags += cell.flagged ? 1 : -1;
+
+    var wasFlagged = cell.flagged;
+    var wasQuestioned = cell.questioned;
+
+    if (!cell.flagged && !cell.questioned) {
+      cell.flagged = true;
+      cell.questioned = false;
+    } else if (cell.flagged) {
+      cell.flagged = false;
+      cell.questioned = true;
+    } else {
+      cell.flagged = false;
+      cell.questioned = false;
+    }
+
+    state.flags += (cell.flagged ? 1 : 0) - (wasFlagged ? 1 : 0);
     renderCell(r, c);
+
+    if (wasQuestioned && !cell.questioned) {
+      playMarkOut(r, c);
+    }
+
     updateMinesDisplay();
+  }
+
+  /* Brief fade for question → unmarked (the glyph class is already gone). */
+  function playMarkOut(r, c) {
+    var el = cellEls[r][c];
+    if (!el) {
+      return;
+    }
+    el.classList.add("is-questioned", "is-mark-out");
+    window.setTimeout(function () {
+      el.classList.remove("is-questioned", "is-mark-out");
+    }, 150);
   }
 
   function chord(r, c) {
@@ -488,6 +527,7 @@
         var cell = state.board[r][c];
         if (cell.mine && !cell.flagged) {
           cell.flagged = true;
+          cell.questioned = false;
           state.flags += 1;
         }
       }
@@ -588,20 +628,41 @@
     el.className = "ms-cell";
     el.textContent = "";
 
+    var mark;
+    var label;
+
     if (cell.revealed) {
       el.classList.add("is-revealed");
       if (cell.mine) {
         el.classList.add("is-mine");
+        mark = "mine";
+        label = "Mine";
       } else if (cell.adjacent > 0) {
         el.classList.add("n" + cell.adjacent);
         el.textContent = String(cell.adjacent);
+        mark = "n" + cell.adjacent;
+        label = cell.adjacent + " adjacent";
+      } else {
+        mark = "empty";
+        label = "Empty";
       }
     } else if (cell.flagged) {
       if (state.status === "lost" && !cell.mine) {
         el.classList.add("is-wrong");
+        mark = "wrong";
+        label = "Wrong flag";
       } else {
         el.classList.add("is-flagged");
+        mark = "flag";
+        label = "Flagged";
       }
+    } else if (cell.questioned) {
+      el.classList.add("is-questioned");
+      mark = "question";
+      label = "Question marked";
+    } else {
+      mark = "hidden";
+      label = "Hidden";
     }
 
     if (
@@ -610,7 +671,11 @@
       state.exploded[1] === c
     ) {
       el.classList.add("is-exploded");
+      label = "Mine, triggered";
     }
+
+    el.dataset.mark = mark;
+    el.setAttribute("aria-label", label);
   }
 
   function updateHud() {
@@ -886,7 +951,7 @@
           return;
         }
         press.longFired = true;
-        toggleFlag(press.r, press.c);
+        cycleMark(press.r, press.c);
       }, LONG_PRESS_MS);
     }
   }
@@ -953,7 +1018,7 @@
     }
     var hit = cellFromEvent(e);
     if (hit) {
-      toggleFlag(hit.r, hit.c);
+      cycleMark(hit.r, hit.c);
     }
   });
 

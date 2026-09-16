@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Gomoku — five in a row against the machine. A small browser game by randolf.dev.">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>Gomoku — Games · RANDOLF.DEV</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3 L20 12 L12 21 L4 12 Z' fill='%23c9f44d'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-noise" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="brand" href="../../">RANDOLF<span class="brand-dot">.</span></a>
+    <nav class="site-nav" aria-label="Primary">
+      <ul>
+        <li><a href="../../games/" aria-current="page">Games</a></li>
+        <li><a href="../../news/">News</a></li>
+        <li><a href="../../ai/">AI</a></li>
+        <li class="nav-clock"><span data-clock>--:--:-- GMT</span></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="page gm-page" id="top">
+    <div class="page-inner">
+
+      <p class="crumbs mono reveal">
+        <a href="../../"><span class="crumb-arr" aria-hidden="true">←</span> Home</a>
+        <span class="crumb-sep" aria-hidden="true">/</span>
+        <a href="../">Games</a>
+        <span class="crumb-sep" aria-hidden="true">/</span>
+        Gomoku
+      </p>
+
+      <header class="page-head reveal">
+        <p class="section-label mono">Game 002 · 五子棋</p>
+        <h1 class="page-title">Gomoku</h1>
+        <p class="page-lede">Five in a row against the machine.</p>
+        <p class="gm-rule mono">Freestyle · 15×15 · Five or more wins</p>
+      </header>
+
+      <section class="block gm reveal">
+
+        <div class="gm-setup" data-gm-setup>
+          <div class="gm-field">
+            <p class="gm-field-label mono">Your side</p>
+            <div class="gm-side" role="group" aria-label="Your side">
+              <button type="button" class="gm-side-btn is-selected" data-gm-side="black" aria-pressed="true">
+                <span class="gm-stone gm-stone--black" aria-hidden="true"></span>
+                <span>Black</span>
+                <span class="gm-side-note mono">first</span>
+              </button>
+              <button type="button" class="gm-side-btn" data-gm-side="white" aria-pressed="false">
+                <span class="gm-stone gm-stone--white" aria-hidden="true"></span>
+                <span>White</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="gm-field">
+            <p class="gm-field-label mono">Difficulty</p>
+            <div class="gm-difficulty" role="group" aria-label="Difficulty">
+              <button type="button" class="gm-diff" data-gm-difficulty="easy" aria-pressed="false">Easy</button>
+              <button type="button" class="gm-diff" data-gm-difficulty="medium" aria-pressed="true">Medium</button>
+              <button type="button" class="gm-diff" data-gm-difficulty="hard" aria-pressed="false">Hard</button>
+            </div>
+          </div>
+
+          <button type="button" class="gm-start" data-gm-start>Start game</button>
+        </div>
+
+        <div class="gm-game" data-gm-game hidden>
+          <div class="gm-controls">
+            <div class="gm-controls-actions">
+              <button type="button" class="gm-btn" data-gm-undo>Undo</button>
+              <button type="button" class="gm-btn" data-gm-new>New game</button>
+              <button type="button" class="gm-btn" data-gm-settings>Settings</button>
+              <button type="button" class="gm-btn" data-gm-stats-toggle aria-expanded="false" aria-controls="gm-stats-panel">Stats</button>
+            </div>
+          </div>
+
+          <div class="gm-hud">
+            <div class="gm-stat gm-stat-turn">
+              <span class="gm-stat-label mono">Turn</span>
+              <span class="gm-stat-value mono" data-gm-turn>—</span>
+            </div>
+            <div class="gm-stat">
+              <span class="gm-stat-label mono">Difficulty</span>
+              <span class="gm-stat-value mono" data-gm-diff>—</span>
+            </div>
+            <div class="gm-stat">
+              <span class="gm-stat-label mono">Moves</span>
+              <span class="gm-stat-value mono" data-gm-moves>0</span>
+            </div>
+            <div class="gm-stat">
+              <span class="gm-stat-label mono">Time</span>
+              <span class="gm-stat-value mono" data-gm-time>00:00</span>
+            </div>
+            <div class="gm-stat gm-stat-status">
+              <span class="gm-stat-label mono">Status</span>
+              <span class="gm-stat-value mono" data-gm-status role="status" aria-live="polite">Ready</span>
+            </div>
+          </div>
+
+          <div class="gm-result" data-gm-result hidden>
+            <p class="gm-result-title mono" data-gm-result-title>You win</p>
+            <p class="gm-result-meta mono" data-gm-result-meta>—</p>
+            <div class="gm-result-actions">
+              <button type="button" class="gm-playagain" data-gm-playagain>Play again</button>
+              <button type="button" class="gm-btn" data-gm-result-settings>Change settings</button>
+            </div>
+          </div>
+
+          <div class="gm-board-wrap">
+            <canvas class="gm-board" data-gm-board width="600" height="600" aria-hidden="true"></canvas>
+          </div>
+
+          <div class="gm-stats-panel" id="gm-stats-panel" data-gm-stats-panel hidden>
+            <div class="gm-stats-grid" data-gm-stats-grid></div>
+            <div class="gm-stats-foot">
+              <button type="button" class="gm-stats-reset" data-gm-stats-reset>Reset statistics</button>
+            </div>
+          </div>
+
+          <div class="gm-help">
+            <p class="para mono">Desktop — click an intersection to place a stone; hover shows a preview.</p>
+            <p class="para mono">Mobile — tap an intersection to place a stone.</p>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="mono">© <span data-year>2026</span> RANDOLF.DEV</div>
+    <div class="mono">Built by hand — HTML · CSS · JS</div>
+    <div class="mono" data-clock>--:--:-- GMT</div>
+  </footer>
+
+  <script src="../../assets/js/main.js"></script>
+  <script src="../../assets/js/gomoku-ai.js"></script>
+  <script src="../../assets/js/gomoku.js"></script>
+</body>
+</html>

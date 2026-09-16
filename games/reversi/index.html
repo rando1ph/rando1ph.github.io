@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Reversi — flip the board and take the corners. A small browser game by randolf.dev.">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>Reversi — Games · RANDOLF.DEV</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3 L20 12 L12 21 L4 12 Z' fill='%23c9f44d'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-noise" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="brand" href="../../">RANDOLF<span class="brand-dot">.</span></a>
+    <nav class="site-nav" aria-label="Primary">
+      <ul>
+        <li><a href="../../games/" aria-current="page">Games</a></li>
+        <li><a href="../../news/">News</a></li>
+        <li><a href="../../ai/">AI</a></li>
+        <li class="nav-clock"><span data-clock>--:--:-- GMT</span></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="page rv-page" id="top">
+    <div class="page-inner">
+
+      <p class="crumbs mono reveal">
+        <a href="../../"><span class="crumb-arr" aria-hidden="true">←</span> Home</a>
+        <span class="crumb-sep" aria-hidden="true">/</span>
+        <a href="../">Games</a>
+        <span class="crumb-sep" aria-hidden="true">/</span>
+        Reversi
+      </p>
+
+      <header class="page-head reveal">
+        <p class="section-label mono">Game 003 · 黑白棋</p>
+        <h1 class="page-title">Reversi</h1>
+        <p class="page-lede">Flip the board. Take the corners.</p>
+        <p class="rv-rule mono">8×8 · Outflank and flip · Most discs wins</p>
+      </header>
+
+      <section class="block rv reveal">
+
+        <div class="rv-setup" data-rv-setup>
+          <div class="rv-field">
+            <p class="rv-field-label mono">Your side</p>
+            <div class="rv-side" role="group" aria-label="Your side">
+              <button type="button" class="rv-side-btn is-selected" data-rv-side="black" aria-pressed="true">
+                <span class="rv-disc rv-disc--black rv-disc--swatch" aria-hidden="true"></span>
+                <span>Black</span>
+                <span class="rv-side-note mono">first</span>
+              </button>
+              <button type="button" class="rv-side-btn" data-rv-side="white" aria-pressed="false">
+                <span class="rv-disc rv-disc--white rv-disc--swatch" aria-hidden="true"></span>
+                <span>White</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="rv-field">
+            <p class="rv-field-label mono">Difficulty</p>
+            <div class="rv-difficulty" role="group" aria-label="Difficulty">
+              <button type="button" class="rv-diff" data-rv-difficulty="easy" aria-pressed="false">Easy</button>
+              <button type="button" class="rv-diff" data-rv-difficulty="medium" aria-pressed="true">Medium</button>
+              <button type="button" class="rv-diff" data-rv-difficulty="hard" aria-pressed="false">Hard</button>
+            </div>
+          </div>
+
+          <button type="button" class="rv-start" data-rv-start>Start game</button>
+        </div>
+
+        <div class="rv-game" data-rv-game hidden>
+          <div class="rv-controls">
+            <div class="rv-controls-actions">
+              <button type="button" class="rv-btn" data-rv-undo>Undo</button>
+              <button type="button" class="rv-btn" data-rv-new>New game</button>
+              <button type="button" class="rv-btn" data-rv-settings>Settings</button>
+              <button type="button" class="rv-btn" data-rv-stats-toggle aria-expanded="false" aria-controls="rv-stats-panel">Stats</button>
+            </div>
+          </div>
+
+          <div class="rv-hud">
+            <div class="rv-score rv-score--black">
+              <span class="rv-score-name mono">Black <span data-rv-you-black>· You</span></span>
+              <span class="rv-score-count mono"><span class="rv-mini rv-mini--black" aria-hidden="true"></span><span data-rv-black>2</span></span>
+            </div>
+            <div class="rv-score rv-score--white">
+              <span class="rv-score-name mono">White <span data-rv-you-white>· AI</span></span>
+              <span class="rv-score-count mono"><span class="rv-mini rv-mini--white" aria-hidden="true"></span><span data-rv-white>2</span></span>
+            </div>
+            <div class="rv-stat">
+              <span class="rv-stat-label mono">Turn</span>
+              <span class="rv-stat-value mono" data-rv-turn>—</span>
+            </div>
+            <div class="rv-stat">
+              <span class="rv-stat-label mono">Difficulty</span>
+              <span class="rv-stat-value mono" data-rv-diff>—</span>
+            </div>
+            <div class="rv-stat">
+              <span class="rv-stat-label mono">Moves</span>
+              <span class="rv-stat-value mono" data-rv-moves>0</span>
+            </div>
+            <div class="rv-stat">
+              <span class="rv-stat-label mono">Time</span>
+              <span class="rv-stat-value mono" data-rv-time>00:00</span>
+            </div>
+            <div class="rv-stat rv-stat-status">
+              <span class="rv-stat-label mono">Status</span>
+              <span class="rv-stat-value mono" data-rv-status role="status" aria-live="polite">Ready</span>
+            </div>
+          </div>
+
+          <p class="rv-notice mono" data-rv-notice hidden></p>
+
+          <div class="rv-result" data-rv-result hidden>
+            <p class="rv-result-title mono" data-rv-result-title>You win</p>
+            <p class="rv-result-counts mono" data-rv-result-counts>—</p>
+            <p class="rv-result-meta mono" data-rv-result-meta>—</p>
+            <div class="rv-result-actions">
+              <button type="button" class="rv-playagain" data-rv-playagain>Play again</button>
+              <button type="button" class="rv-btn" data-rv-result-settings>Change settings</button>
+            </div>
+          </div>
+
+          <div class="rv-board-wrap">
+            <div class="rv-board" data-rv-board role="group" aria-label="Reversi board"></div>
+          </div>
+
+          <div class="rv-stats-panel" id="rv-stats-panel" data-rv-stats-panel hidden>
+            <div class="rv-stats-grid" data-rv-stats-grid></div>
+            <div class="rv-stats-foot">
+              <button type="button" class="rv-stats-reset" data-rv-stats-reset>Reset statistics</button>
+            </div>
+          </div>
+
+          <div class="rv-help">
+            <p class="para mono">Tap or click a marked square to place a disc. Bracketed discs flip to your colour.</p>
+            <p class="para mono">Corners are permanent — the squares beside them are traps.</p>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="mono">© <span data-year>2026</span> RANDOLF.DEV</div>
+    <div class="mono">Built by hand — HTML · CSS · JS</div>
+    <div class="mono" data-clock>--:--:-- GMT</div>
+  </footer>
+
+  <script src="../../assets/js/main.js"></script>
+  <script src="../../assets/js/reversi-ai.js"></script>
+  <script src="../../assets/js/reversi.js"></script>
+</body>
+</html>
