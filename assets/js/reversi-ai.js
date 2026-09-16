@@ -9,6 +9,14 @@
    stability / frontier) are standard Reversi technique; no code is
    copied from any reference project.
 
+   Difficulty is calibrated with separate evaluation profiles rather
+   than search depth alone:
+     easy   — 1-ply positional + corners + light mobility, wide sampling
+     medium — depth-2 negamax, position + mobility + corners + frontier,
+              no stability / potential / exact endgame, mild sampling
+     hard   — full phase-aware evaluation, depth-8 iterative deepening,
+              exact endgame search, deterministic best move
+
    Board: flat array of 64 values, 0 empty, 1 black, 2 white.
    Index = row * 8 + col.
 
@@ -66,6 +74,53 @@
     63: [62, 55, 54]
   };
 
+  /* --- difficulty evaluation profiles ----------------------------- */
+
+  var PROFILES = {
+    easy: {
+      weights: { mob: 250, corner: 1500, pos: 1, frontier: 0, stable: 0, disc: 2, pot: 0 },
+      dynamic: false,
+      sample: { topK: 5, margin: 1.5, temperature: 1.0 }
+    },
+    medium: {
+      phases: [
+        { mob: 700, corner: 1800, pos: 1, frontier: 12, stable: 0, disc: 0, pot: 0 },
+        { mob: 480, corner: 2200, pos: 1, frontier: 10, stable: 0, disc: 3, pot: 0 },
+        { mob: 150, corner: 3200, pos: 1, frontier: 5, stable: 0, disc: 80, pot: 0 }
+      ],
+      dynamic: true,
+      sample: { topK: 2, margin: 0.4, temperature: 0.35 }
+    },
+    hard: {
+      phases: [
+        { mob: 900, corner: 1600, pos: 1, frontier: 14, stable: 30, disc: 0, pot: 10 },
+        { mob: 600, corner: 2200, pos: 1, frontier: 10, stable: 60, disc: 4, pot: 6 },
+        { mob: 120, corner: 4000, pos: 1, frontier: 4, stable: 100, disc: 160, pot: 0 }
+      ],
+      dynamic: true,
+      sample: null
+    }
+  };
+
+  function profileFor(difficulty) {
+    return PROFILES[difficulty] || PROFILES.hard;
+  }
+
+  function phaseWeights(profile, empties) {
+    if (profile.weights) {
+      return profile.weights;
+    }
+    if (empties > 40) {
+      return profile.phases[0];
+    }
+    if (empties > 12) {
+      return profile.phases[1];
+    }
+    return profile.phases[2];
+  }
+
+  /* --- geometry / helpers ----------------------------------------- */
+
   function idx(r, c) {
     return r * SIZE + c;
   }
@@ -76,6 +131,10 @@
 
   function opponent(player) {
     return player === BLACK ? WHITE : BLACK;
+  }
+
+  function isCorner(index) {
+    return CORNERS.indexOf(index) !== -1;
   }
 
   function initialBoard() {
@@ -179,7 +238,7 @@
     return { current: mover, pass: false, passed: 0, over: true };
   }
 
-  /* --- evaluation ------------------------------------------------- */
+  /* --- evaluation components -------------------------------------- */
 
   /* Dynamic positional table: once a corner is owned the adjacent
      C/X squares are no longer as dangerous. */
@@ -285,7 +344,8 @@
     return count;
   }
 
-  function evaluate(board, player) {
+  function evaluate(board, player, profile) {
+    var p = profile || PROFILES.hard;
     var opp = opponent(player);
     var empties = 0;
     var myCount = 0;
@@ -309,7 +369,7 @@
         ? (myMoves - oppMoves) / (myMoves + oppMoves)
         : 0;
 
-    var w = dynamicWeights(board);
+    var w = p.dynamic ? dynamicWeights(board) : BASE_WEIGHTS;
     var pos = 0;
     for (i = 0; i < CELLS; i += 1) {
       if (board[i] === player) {
@@ -328,29 +388,26 @@
       }
     }
 
-    var frontier = frontierCount(board, opp) - frontierCount(board, player);
-    var stability = stableCount(board, player) - stableCount(board, opp);
-    var discDiff = myCount - oppCount;
-    var potential = potentialMoves(board, player) - potentialMoves(board, opp);
-
-    var weights;
-    if (empties > 40) {
-      weights = { mob: 900, corner: 1600, pos: 1, frontier: 14, stable: 30, disc: 0, pot: 10 };
-    } else if (empties > 12) {
-      weights = { mob: 600, corner: 2200, pos: 1, frontier: 10, stable: 60, disc: 4, pot: 6 };
-    } else {
-      weights = { mob: 120, corner: 4000, pos: 1, frontier: 4, stable: 100, disc: 160, pot: 0 };
-    }
-
-    return (
+    var weights = phaseWeights(p, empties);
+    var score =
       weights.mob * mobility +
       weights.corner * cornerScore +
-      weights.pos * pos +
-      weights.frontier * frontier +
-      weights.stable * stability +
-      weights.disc * discDiff +
-      weights.pot * potential
-    );
+      weights.pos * pos;
+
+    if (weights.frontier) {
+      score += weights.frontier * (frontierCount(board, opp) - frontierCount(board, player));
+    }
+    if (weights.stable) {
+      score += weights.stable * (stableCount(board, player) - stableCount(board, opp));
+    }
+    if (weights.disc) {
+      score += weights.disc * (myCount - oppCount);
+    }
+    if (weights.pot) {
+      score += weights.pot * (potentialMoves(board, player) - potentialMoves(board, opp));
+    }
+
+    return score;
   }
 
   /* --- search ----------------------------------------------------- */
@@ -374,7 +431,7 @@
     return moves;
   }
 
-  function negamax(board, player, depth, alpha, beta, deadline, tracker) {
+  function negamax(board, player, depth, alpha, beta, deadline, tracker, profile) {
     tracker.nodes += 1;
     if ((tracker.nodes & 1023) === 0 && Date.now() > deadline) {
       tracker.aborted = true;
@@ -387,10 +444,19 @@
         return terminalScore(board, player);
       }
       /* Forced pass: hand over without consuming depth. */
-      return -negamax(board, opponent(player), depth, alpha, beta, deadline, tracker);
+      return -negamax(
+        board,
+        opponent(player),
+        depth,
+        alpha,
+        beta,
+        deadline,
+        tracker,
+        profile
+      );
     }
     if (depth <= 0) {
-      return evaluate(board, player);
+      return evaluate(board, player, profile);
     }
 
     orderMoves(moves, dynamicWeights(board));
@@ -405,7 +471,8 @@
         -beta,
         -alpha,
         deadline,
-        tracker
+        tracker,
+        profile
       );
       if (tracker.aborted) {
         return 0;
@@ -423,18 +490,23 @@
     return best;
   }
 
-  function search(board, player, moves, maxDepth, budget) {
+  function search(board, player, moves, maxDepth, budget, profile) {
     var deadline = Date.now() + budget;
     var w = dynamicWeights(board);
     var order = orderMoves(moves.slice(), w);
     var bestMove = order[0];
+    var roots = order.map(function (m) {
+      return { ix: m, score: 0 };
+    });
     var info = { depth: 0, nodes: 0, timedOut: false, reason: "search" };
+    var step = maxDepth % 2 === 0 ? 2 : 1;
 
-    for (var depth = 2; depth <= maxDepth; depth += 2) {
+    for (var depth = step; depth <= maxDepth; depth += step) {
       var alpha = -Infinity;
       var beta = Infinity;
       var bestThisDepth = null;
       var bestScore = -Infinity;
+      var perMove = [];
       var tracker = { nodes: 0, aborted: false };
 
       for (var i = 0; i < order.length; i += 1) {
@@ -447,11 +519,13 @@
           -beta,
           -alpha,
           deadline,
-          tracker
+          tracker,
+          profile
         );
         if (tracker.aborted) {
           break;
         }
+        perMove.push({ ix: order[i], score: val });
         if (val > bestScore) {
           bestScore = val;
           bestThisDepth = order[i];
@@ -470,6 +544,10 @@
         bestMove = bestThisDepth;
         info.depth = depth;
         info.score = bestScore;
+        perMove.sort(function (a, b) {
+          return b.score - a.score;
+        });
+        roots = perMove;
         order = [bestMove].concat(
           order.filter(function (x) {
             return x !== bestMove;
@@ -485,30 +563,83 @@
       }
     }
 
-    return { move: bestMove, info: info };
+    return { move: bestMove, info: info, roots: roots };
+  }
+
+  /* --- controlled randomness -------------------------------------- */
+
+  /* Weighted pick among the leading candidates. Scores are log-compressed
+     (so large positional values do not dominate), gated by a margin, then
+     weighted by exp(-gap / temperature). `scored` must be sorted desc. */
+  function weightedPick(scored, sample) {
+    var n = Math.min(sample.topK, scored.length);
+    if (n <= 1) {
+      return scored[0].ix;
+    }
+    var minScore = scored[n - 1].score;
+    var cBest = Math.log(1 + Math.max(0, scored[0].score - minScore));
+    var pool = [];
+    var weights = [];
+    var total = 0;
+
+    for (var i = 0; i < n; i += 1) {
+      var c = Math.log(1 + Math.max(0, scored[i].score - minScore));
+      if (cBest - c > sample.margin) {
+        break;
+      }
+      var w = Math.exp(-(cBest - c) / sample.temperature);
+      pool.push(scored[i].ix);
+      weights.push(w);
+      total += w;
+    }
+
+    if (!pool.length) {
+      return scored[0].ix;
+    }
+    var r = Math.random() * total;
+    for (var j = 0; j < pool.length; j += 1) {
+      r -= weights[j];
+      if (r <= 0) {
+        return pool[j];
+      }
+    }
+    return pool[pool.length - 1];
   }
 
   /* --- easy ------------------------------------------------------- */
 
-  function easyMove(board, player, moves) {
-    var w = dynamicWeights(board);
-    var scored = moves.map(function (m) {
-      return { m: m, s: w[m] + Math.random() * 18 };
-    });
-    scored.sort(function (a, b) {
-      return b.s - a.s;
-    });
-    var best = scored[0].s;
-    var pool = [];
-    for (var i = 0; i < scored.length && i < 4; i += 1) {
-      if (scored[i].s >= best - 22) {
-        pool.push(scored[i].m);
-      }
+  function easyMove(board, player, moves, profile) {
+    var scored = [];
+    for (var i = 0; i < moves.length; i += 1) {
+      var next = board.slice();
+      applyMove(next, moves[i], player);
+      scored.push({ ix: moves[i], score: evaluate(next, player, profile) });
     }
+    scored.sort(function (a, b) {
+      return b.score - a.score;
+    });
     return {
-      move: pool[Math.floor(Math.random() * pool.length)],
+      move: weightedPick(scored, profile.sample),
       info: { reason: "easy" }
     };
+  }
+
+  function bestCorner(board, player, moves, profile) {
+    var best = -1;
+    var bestScore = -Infinity;
+    for (var i = 0; i < moves.length; i += 1) {
+      if (!isCorner(moves[i])) {
+        continue;
+      }
+      var next = board.slice();
+      applyMove(next, moves[i], player);
+      var s = evaluate(next, player, profile);
+      if (s > bestScore) {
+        bestScore = s;
+        best = moves[i];
+      }
+    }
+    return best;
   }
 
   /* --- entry point ------------------------------------------------ */
@@ -521,8 +652,20 @@
     if (moves.length === 1) {
       return { move: moves[0], info: { reason: "only" } };
     }
+
+    var profile = profileFor(difficulty);
+
+    /* Tactical safety floor (weaker levels): always take an available
+       corner when one exists. */
+    if (difficulty !== "hard") {
+      var corner = bestCorner(board, player, moves, profile);
+      if (corner >= 0) {
+        return { move: corner, info: { reason: "corner" } };
+      }
+    }
+
     if (difficulty === "easy") {
-      return easyMove(board, player, moves);
+      return easyMove(board, player, moves, profile);
     }
 
     var empties = 0;
@@ -532,15 +675,23 @@
       }
     }
 
-    var maxDepth = difficulty === "hard" ? 8 : 4;
-    var b = budget || (difficulty === "hard" ? 2000 : 800);
-    if (empties <= 12) {
+    var maxDepth = difficulty === "hard" ? 8 : 3;
+    var b = budget || (difficulty === "hard" ? 2000 : 600);
+    if (difficulty === "hard" && empties <= 12) {
       maxDepth = Math.max(maxDepth, empties);
-      if (difficulty === "hard") {
-        b = Math.max(b, 2500);
-      }
+      b = Math.max(b, 2500);
     }
-    return search(board, player, moves, maxDepth, b);
+
+    var result = search(board, player, moves, maxDepth, b, profile);
+
+    /* Weaker levels may sample a near-best root move; Hard is decisive. */
+    if (profile.sample && result.roots && result.roots.length > 1) {
+      return {
+        move: weightedPick(result.roots, profile.sample),
+        info: result.info
+      };
+    }
+    return result;
   }
 
   root.ReversiAI = {

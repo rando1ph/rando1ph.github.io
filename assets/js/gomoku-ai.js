@@ -7,6 +7,17 @@
    restriction, alpha-beta, iterative deepening with a time budget)
    are standard; no code is copied from any reference project.
 
+   Difficulty is calibrated with separate evaluation profiles rather
+   than search depth alone:
+     easy   — coarse local patterns, low defensive awareness, wide
+              sampling among plausible moves, no search
+     medium — tactical patterns, depth-2 negamax, mild near-best sampling
+     hard   — full pattern evaluation incl. gapped shapes, depth-6
+              iterative deepening, deterministic best move
+
+   All levels keep a tactical safety floor: take an immediate win and
+   block an immediate loss before anything else.
+
    Public API (attached to self.GomokuAI):
      SIZE, EMPTY, BLACK, WHITE
      idx(r, c)                         -> board index
@@ -15,7 +26,7 @@
      evaluatePoint(board, r, c, player)-> heuristic value of a move
      evaluateBoard(board, player)      -> static score from player's view
      chooseMove(board, player, difficulty, budget)
-                                       -> { move: index, info: {...} }
+                                        -> { move: index, info: {...} }
    ------------------------------------------------------------------ */
 
 (function (root) {
@@ -199,9 +210,50 @@
     return out;
   }
 
-  /* --- scoring primitives ----------------------------------------- */
+  /* --- difficulty evaluation profiles ----------------------------- */
 
-  function runScore(run, openEnds) {
+  /* Pattern tables. Easy does not distinguish open from closed fours and
+     ignores single stones; Medium distinguishes fours and threes but
+     drops the weakest shapes; Hard scores everything. */
+  function runScoreEasy(run, openEnds) {
+    if (run >= 5) {
+      return SCORE.FIVE;
+    }
+    if (openEnds === 0) {
+      return 0;
+    }
+    if (run === 4) {
+      return SCORE.FOUR;
+    }
+    if (run === 3) {
+      return openEnds === 2 ? SCORE.OPEN_THREE : SCORE.THREE;
+    }
+    if (run === 2) {
+      return SCORE.TWO;
+    }
+    return 0;
+  }
+
+  function runScoreMedium(run, openEnds) {
+    if (run >= 5) {
+      return SCORE.FIVE;
+    }
+    if (openEnds === 0) {
+      return 0;
+    }
+    if (run === 4) {
+      return openEnds === 2 ? SCORE.OPEN_FOUR : SCORE.FOUR;
+    }
+    if (run === 3) {
+      return openEnds === 2 ? SCORE.OPEN_THREE : SCORE.THREE;
+    }
+    if (run === 2) {
+      return SCORE.TWO;
+    }
+    return 0;
+  }
+
+  function runScoreHard(run, openEnds) {
     if (run >= 5) {
       return SCORE.FIVE;
     }
@@ -223,6 +275,45 @@
     return 0;
   }
 
+  var PROFILES = {
+    easy: {
+      runScore: runScoreEasy,
+      orderDefense: 0.9,
+      evalDefense: 0.5,
+      gapped: false,
+      maxDepth: 0,
+      rootLimit: 0,
+      budget: 0,
+      sample: { topK: 6, margin: 2.6, temperature: 1.2 }
+    },
+    medium: {
+      runScore: runScoreMedium,
+      orderDefense: 0.9,
+      evalDefense: 0.9,
+      gapped: false,
+      maxDepth: 2,
+      rootLimit: 8,
+      budget: 600,
+      sample: { topK: 3, margin: 1.1, temperature: 0.6 }
+    },
+    hard: {
+      runScore: runScoreHard,
+      orderDefense: 0.9,
+      evalDefense: 1.1,
+      gapped: true,
+      maxDepth: 6,
+      rootLimit: 14,
+      budget: 2200,
+      sample: null
+    }
+  };
+
+  function profileFor(difficulty) {
+    return PROFILES[difficulty] || PROFILES.hard;
+  }
+
+  /* --- scoring primitives ----------------------------------------- */
+
   function windowScore(count) {
     if (count >= 5) {
       return SCORE.FIVE;
@@ -243,10 +334,10 @@
   }
 
   /* Value of the line through (r, c) in one direction, assuming a
-     `player` stone sits at (r, c). Combines an open-end run score
-     (which distinguishes open fours / threes) with the best
-     5-window score (which catches gapped shapes such as XX_XX). */
-  function directionPointScore(board, r, c, dr, dc, player) {
+     `player` stone sits at (r, c). The run/open-end score distinguishes
+     open fours / threes; the 5-window score (Hard only) catches gapped
+     shapes such as XX_XX. */
+  function directionPointScore(board, r, c, dr, dc, player, profile) {
     var vals = [];
     var k;
     var rr;
@@ -288,39 +379,43 @@
     var run = left + 1 + right;
     var openLeft = left < 4 && vals[4 - left - 1] === 0;
     var openRight = right < 4 && vals[4 + right + 1] === 0;
-    var best = runScore(run, (openLeft ? 1 : 0) + (openRight ? 1 : 0));
+    var best = profile.runScore(run, (openLeft ? 1 : 0) + (openRight ? 1 : 0));
 
-    for (var s = -4; s <= 0; s += 1) {
-      var count = 0;
-      var blocked = false;
-      for (var w = 0; w < 5; w += 1) {
-        var val = vals[s + w + 4];
-        if (val === 1) {
-          count += 1;
-        } else if (val === 2) {
-          blocked = true;
-          break;
+    if (profile.gapped) {
+      for (var s = -4; s <= 0; s += 1) {
+        var count = 0;
+        var blocked = false;
+        for (var w = 0; w < 5; w += 1) {
+          var val = vals[s + w + 4];
+          if (val === 1) {
+            count += 1;
+          } else if (val === 2) {
+            blocked = true;
+            break;
+          }
         }
-      }
-      if (!blocked) {
-        best = Math.max(best, windowScore(count));
+        if (!blocked) {
+          best = Math.max(best, windowScore(count));
+        }
       }
     }
 
     return best;
   }
 
-  function evaluatePoint(board, r, c, player) {
+  function evaluatePoint(board, r, c, player, profile) {
+    var p = profile || PROFILES.hard;
     var total = 0;
     for (var d = 0; d < 4; d += 1) {
-      total += directionPointScore(board, r, c, DIRS[d][0], DIRS[d][1], player);
+      total += directionPointScore(board, r, c, DIRS[d][0], DIRS[d][1], player, p);
     }
     return total;
   }
 
   /* --- static board evaluation ------------------------------------ */
 
-  function scorePlayer(board, player) {
+  function scorePlayer(board, player, profile) {
+    var p = profile || PROFILES.hard;
     var total = 0;
     for (var li = 0; li < LINES.length; li += 1) {
       var line = LINES[li];
@@ -335,7 +430,7 @@
           var run = j - i;
           var openLeft = i > 0 && board[line[i - 1]] === EMPTY;
           var openRight = j < n && board[line[j]] === EMPTY;
-          total += runScore(run, (openLeft ? 1 : 0) + (openRight ? 1 : 0));
+          total += p.runScore(run, (openLeft ? 1 : 0) + (openRight ? 1 : 0));
           i = j;
         } else {
           i += 1;
@@ -345,9 +440,12 @@
     return total;
   }
 
-  function evaluateBoard(board, player) {
-    var opp = opponent(player);
-    return scorePlayer(board, player) - scorePlayer(board, opp) * 1.1;
+  function evaluateBoard(board, player, profile) {
+    var p = profile || PROFILES.hard;
+    return (
+      scorePlayer(board, player, p) -
+      scorePlayer(board, opponent(player), p) * p.evalDefense
+    );
   }
 
   /* --- move helpers ----------------------------------------------- */
@@ -367,7 +465,8 @@
     return out;
   }
 
-  function scoreCandidates(board, candidates, player) {
+  function scoreCandidates(board, candidates, player, profile) {
+    var p = profile || PROFILES.hard;
     var opp = opponent(player);
     var scored = [];
     for (var i = 0; i < candidates.length; i += 1) {
@@ -377,8 +476,8 @@
       scored.push({
         ix: ix,
         score:
-          evaluatePoint(board, r, c, player) +
-          evaluatePoint(board, r, c, opp) * 0.9
+          evaluatePoint(board, r, c, player, p) +
+          evaluatePoint(board, r, c, opp, p) * p.orderDefense
       });
     }
     scored.sort(function (a, b) {
@@ -387,7 +486,7 @@
     return scored;
   }
 
-  function bestOf(moves, board, player) {
+  function bestOf(moves, board, player, profile) {
     var best = moves[0];
     var bestScore = -Infinity;
     for (var i = 0; i < moves.length; i += 1) {
@@ -396,7 +495,8 @@
         board,
         Math.floor(ix / SIZE),
         ix % SIZE,
-        player
+        player,
+        profile
       );
       if (s > bestScore) {
         bestScore = s;
@@ -406,9 +506,49 @@
     return best;
   }
 
-  /* --- easy: heuristic + controlled randomness -------------------- */
+  /* --- controlled randomness -------------------------------------- */
 
-  function easyMove(board, player, candidates) {
+  /* Weighted pick among the leading candidates. Scores are log-compressed
+     (so pattern magnitudes do not dominate), gated by a margin, then
+     weighted by exp(-gap / temperature). `scored` must be sorted desc. */
+  function weightedPick(scored, sample) {
+    var n = Math.min(sample.topK, scored.length);
+    if (n <= 1) {
+      return scored[0].ix;
+    }
+    var minScore = scored[n - 1].score;
+    var cBest = Math.log(1 + Math.max(0, scored[0].score - minScore));
+    var pool = [];
+    var weights = [];
+    var total = 0;
+
+    for (var i = 0; i < n; i += 1) {
+      var c = Math.log(1 + Math.max(0, scored[i].score - minScore));
+      if (cBest - c > sample.margin) {
+        break;
+      }
+      var w = Math.exp(-(cBest - c) / sample.temperature);
+      pool.push(scored[i].ix);
+      weights.push(w);
+      total += w;
+    }
+
+    if (!pool.length) {
+      return scored[0].ix;
+    }
+    var r = Math.random() * total;
+    for (var j = 0; j < pool.length; j += 1) {
+      r -= weights[j];
+      if (r <= 0) {
+        return pool[j];
+      }
+    }
+    return pool[pool.length - 1];
+  }
+
+  /* --- easy ------------------------------------------------------- */
+
+  function easyMove(board, player, candidates, profile) {
     var opp = opponent(player);
     var scored = [];
     for (var i = 0; i < candidates.length; i += 1) {
@@ -418,42 +558,36 @@
       scored.push({
         ix: ix,
         score:
-          evaluatePoint(board, r, c, player) +
-          evaluatePoint(board, r, c, opp) * 0.85
+          evaluatePoint(board, r, c, player, profile) +
+          evaluatePoint(board, r, c, opp, profile) * profile.evalDefense
       });
     }
     scored.sort(function (a, b) {
       return b.score - a.score;
     });
-
-    var best = scored[0].score;
-    var pool = [];
-    for (var k = 0; k < scored.length && k < 4; k += 1) {
-      if (scored[k].score >= best * 0.8) {
-        pool.push(scored[k].ix);
-      }
-    }
-    var chosen = pool[Math.floor(Math.random() * pool.length)];
-    return { move: chosen, info: { reason: "easy" } };
+    return {
+      move: weightedPick(scored, profile.sample),
+      info: { reason: "easy" }
+    };
   }
 
   /* --- alpha-beta search ------------------------------------------ */
 
-  function negamax(board, depth, alpha, beta, player, deadline, tracker) {
+  function negamax(board, depth, alpha, beta, player, deadline, tracker, profile) {
     tracker.nodes += 1;
     if ((tracker.nodes & 511) === 0 && Date.now() > deadline) {
       tracker.aborted = true;
       return 0;
     }
     if (depth <= 0) {
-      return evaluateBoard(board, player);
+      return evaluateBoard(board, player, profile);
     }
 
     var candidates = generateCandidates(board, 2);
     if (!candidates.length) {
       return 0;
     }
-    var ordered = scoreCandidates(board, candidates, player);
+    var ordered = scoreCandidates(board, candidates, player, profile);
     var limit = depth >= 4 ? 6 : 8;
     var best = -Infinity;
 
@@ -471,7 +605,8 @@
           -alpha,
           opponent(player),
           deadline,
-          tracker
+          tracker,
+          profile
         );
       }
       board[ix] = EMPTY;
@@ -492,14 +627,18 @@
   }
 
   /* Iterative deepening at the root. Returns the best move from the
-     last fully completed depth so a timeout never leaves us empty. */
-  function search(board, player, candidates, maxDepth, budget) {
+     last fully completed depth plus the root move scores, so weaker
+     levels can sample near-best alternatives. */
+  function search(board, player, candidates, maxDepth, budget, profile) {
     var deadline = Date.now() + budget;
-    var ordered = scoreCandidates(board, candidates, player);
+    var ordered = scoreCandidates(board, candidates, player, profile);
     var order = ordered.map(function (o) {
       return o.ix;
     });
     var bestMove = order[0];
+    var roots = ordered.map(function (o) {
+      return { ix: o.ix, score: o.score };
+    });
     var info = { depth: 0, nodes: 0, timedOut: false, reason: "search" };
 
     for (var depth = 2; depth <= maxDepth; depth += 2) {
@@ -507,6 +646,7 @@
       var beta = Infinity;
       var bestScore = -Infinity;
       var bestThisDepth = null;
+      var perMove = [];
       var tracker = { nodes: 0, aborted: false };
 
       for (var i = 0; i < order.length; i += 1) {
@@ -523,13 +663,15 @@
             -alpha,
             opponent(player),
             deadline,
-            tracker
+            tracker,
+            profile
           );
         }
         board[ix] = EMPTY;
         if (tracker.aborted) {
           break;
         }
+        perMove.push({ ix: ix, score: val });
         if (val > bestScore) {
           bestScore = val;
           bestThisDepth = ix;
@@ -549,6 +691,10 @@
         bestMove = bestThisDepth;
         info.depth = depth;
         info.score = bestScore;
+        perMove.sort(function (a, b) {
+          return b.score - a.score;
+        });
+        roots = perMove;
         order = [bestMove].concat(
           order.filter(function (x) {
             return x !== bestMove;
@@ -564,13 +710,14 @@
       }
     }
 
-    return { move: bestMove, info: info };
+    return { move: bestMove, info: info, roots: roots };
   }
 
   /* --- entry point ------------------------------------------------ */
 
   function chooseMove(board, player, difficulty, budget) {
     var start = Date.now();
+    var profile = profileFor(difficulty);
     var candidates = generateCandidates(board, 2);
 
     if (!candidates.length) {
@@ -580,39 +727,54 @@
       return { move: candidates[0], info: { reason: "only" } };
     }
 
-    /* 1. Take an immediate win. */
+    /* Tactical safety floor (all levels): take an immediate win. */
     var wins = findWinningMoves(board, player, candidates);
     if (wins.length) {
-      return { move: bestOf(wins, board, player), info: { reason: "win" } };
+      return {
+        move: bestOf(wins, board, player, profile),
+        info: { reason: "win" }
+      };
     }
 
-    /* 2. Block the opponent's immediate win. */
+    /* Tactical safety floor (all levels): block an immediate loss. */
     var opp = opponent(player);
     var blocks = findWinningMoves(board, opp, candidates);
     if (blocks.length) {
-      return { move: bestOf(blocks, board, player), info: { reason: "block" } };
+      return {
+        move: bestOf(blocks, board, player, profile),
+        info: { reason: "block" }
+      };
     }
 
     if (difficulty === "easy") {
-      return easyMove(board, player, candidates);
+      return easyMove(board, player, candidates, profile);
     }
 
-    var maxDepth = difficulty === "hard" ? 6 : 3;
-    var defaultBudget = difficulty === "hard" ? 2200 : 900;
-    var ordered = scoreCandidates(board, candidates, player);
-    var limit = difficulty === "hard" ? 14 : 10;
-    var rootMoves = ordered.slice(0, limit).map(function (o) {
+    var ordered = scoreCandidates(board, candidates, player, profile);
+    var rootMoves = ordered.slice(0, profile.rootLimit).map(function (o) {
       return o.ix;
     });
-
     var result = search(
       board,
       player,
       rootMoves,
-      maxDepth,
-      budget || defaultBudget
+      profile.maxDepth,
+      budget || profile.budget,
+      profile
     );
     result.info.elapsed = Date.now() - start;
+
+    /* Weaker levels may sample a near-best root move; Hard is decisive. */
+    if (
+      profile.sample &&
+      result.roots &&
+      result.roots.length > 1
+    ) {
+      return {
+        move: weightedPick(result.roots, profile.sample),
+        info: result.info
+      };
+    }
     return result;
   }
 
