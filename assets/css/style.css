@@ -2989,3 +2989,189 @@ a:focus-visible,
     transform: none;
   }
 }
+
+/* ------------------------------------------------------------------
+   Water Sort — V2 (modes, hint, sound)
+   ------------------------------------------------------------------ */
+
+.ws-modes {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.ws-mode-btn,
+.ws-diff-btn {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+  transition: color 0.3s var(--ease), border-color 0.3s var(--ease),
+    background 0.3s var(--ease);
+}
+
+.ws-mode-btn:hover,
+.ws-diff-btn:hover {
+  color: var(--fg);
+  border-color: var(--muted);
+}
+
+.ws-mode-btn[aria-pressed="true"] {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.ws-diff {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.ws-diff[hidden] {
+  display: none;
+}
+
+.ws-diff-btn {
+  border-radius: 2px;
+  font-size: 9px;
+  padding: 0.35rem 0.7rem;
+}
+
+.ws-diff-btn[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: rgba(201, 244, 77, 0.5);
+  background: rgba(201, 244, 77, 0.07);
+}
+
+.ws-mode-btn:focus-visible,
+.ws-diff-btn:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.ws-hint-panel {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+  margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(201, 244, 77, 0.3);
+  border-left: 3px solid var(--accent);
+  border-radius: 2px;
+  background: var(--bg-2);
+}
+
+.ws-hint-panel[hidden] {
+  display: none;
+}
+
+.ws-hint-question {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--fg);
+}
+
+.ws-hint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ws-hint-result {
+  margin: 0 0 1rem;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+}
+
+.ws-hint-result[hidden] {
+  display: none;
+}
+
+.ws-gen {
+  margin: 2rem 0;
+  text-align: center;
+  letter-spacing: 0.22em;
+  color: var(--muted);
+  animation: ws-gen-pulse 1.4s ease-in-out infinite;
+}
+
+.ws-gen[hidden] {
+  display: none;
+}
+
+@keyframes ws-gen-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+/* hint emphasis: motion + outline + lift, never color-only */
+
+.ws-bottle.is-hint-src .ws-glass,
+.ws-bottle.is-hint-dst .ws-glass {
+  stroke: rgba(201, 244, 77, 0.9);
+}
+
+.ws-bottle.is-hint-src .ws-bottle-inner {
+  animation: ws-hint-pulse 0.7s var(--ease) 2;
+}
+
+.ws-bottle.is-hint-dst .ws-bottle-inner {
+  animation: ws-hint-drop 0.7s var(--ease) 2;
+}
+
+.ws-bottle.is-hint-dst::before {
+  content: "↓";
+  position: absolute;
+  top: -1.15rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  line-height: 1;
+  animation: ws-hint-arrow 0.7s var(--ease) 2;
+}
+
+@keyframes ws-hint-pulse {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes ws-hint-drop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+
+@keyframes ws-hint-arrow {
+  0%, 100% { opacity: 0.4; transform: translateX(-50%) translateY(0); }
+  50% { opacity: 1; transform: translateX(-50%) translateY(3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-gen {
+    animation: none;
+  }
+
+  .ws-bottle.is-hint-src .ws-bottle-inner,
+  .ws-bottle.is-hint-dst .ws-bottle-inner,
+  .ws-bottle.is-hint-dst::before {
+    animation: none !important;
+  }
+
+  .ws-bottle.is-hint-src .ws-bottle-inner {
+    transform: translateY(-8px);
+  }
+
+  .ws-bottle.is-hint-dst::before {
+    content: "↓";
+    opacity: 1;
+  }
+}

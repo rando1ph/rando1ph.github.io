@@ -65,6 +65,7 @@
   var statsPanel = document.querySelector("[data-gm-stats-panel]");
   var statsGrid = document.querySelector("[data-gm-stats-grid]");
   var statsResetBtn = document.querySelector("[data-gm-stats-reset]");
+  var soundBtn = document.querySelector("[data-gm-sound]");
   var turnEl = document.querySelector("[data-gm-turn]");
   var diffEl = document.querySelector("[data-gm-diff]");
   var movesEl = document.querySelector("[data-gm-moves]");
@@ -368,6 +369,11 @@
     });
     state.lastMove = ix;
     state.hover = null;
+    if (window.GameAudio) {
+      window.GameAudio.gm.stone(
+        player === state.humanColor ? "human" : "ai"
+      );
+    }
     if (!reducedMotion) {
       state.placeAnim = { ix: ix, start: performance.now() };
       ensureAnim();
@@ -408,6 +414,15 @@
     stopTimer();
     state.status = "over";
     state.result = result;
+    if (window.GameAudio) {
+      if (result === "win") {
+        window.GameAudio.gm.win();
+      } else if (result === "loss") {
+        window.GameAudio.gm.loss();
+      } else {
+        window.GameAudio.gm.draw();
+      }
+    }
     state.winning = line;
     state.winProgress = reducedMotion ? 1 : 0;
     state.winAnim = reducedMotion ? null : { start: performance.now() };
@@ -1037,10 +1052,16 @@
 
   canvas.addEventListener("click", function (e) {
     if (!isHumanTurn()) {
+      if (window.GameAudio) {
+        window.GameAudio.gm.invalid();
+      }
       return;
     }
     var hit = eventToCell(e);
     if (!hit || state.board[IDX(hit.r, hit.c)] !== EMPTY) {
+      if (hit && window.GameAudio) {
+        window.GameAudio.gm.invalid();
+      }
       return;
     }
     humanMove(hit.r, hit.c);
@@ -1106,6 +1127,25 @@
   }
   if (statsResetBtn) {
     statsResetBtn.addEventListener("click", onResetStats);
+  }
+
+  /* --- sound toggle ------------------------------------------------- */
+
+  function applySoundPref() {
+    if (!soundBtn || !window.GameAudio) {
+      return;
+    }
+    var on = window.GameAudio.isEnabled();
+    soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    soundBtn.textContent = on ? "Sound" : "Sound off";
+  }
+
+  if (soundBtn && window.GameAudio) {
+    soundBtn.addEventListener("click", function () {
+      window.GameAudio.toggle();
+      applySoundPref();
+    });
+    applySoundPref();
   }
 
   window.addEventListener("resize", requestDraw);

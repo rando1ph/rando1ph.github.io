@@ -1,0 +1,563 @@
+/* ------------------------------------------------------------------
+   Rope Tangle — randolf.dev
+   Game-specific styles. Scoped to .rt / .rt-page; shared site CSS
+   (style.css) is untouched.
+   ------------------------------------------------------------------ */
+
+.rt [hidden] {
+  display: none;
+}
+
+.rt-page .page-head {
+  margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.rt-page .page-title {
+  margin-bottom: 0.8rem;
+}
+
+.rt-rule {
+  margin-top: 0.75rem;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+}
+
+/* --- controls / HUD ---------------------------------------------- */
+
+.rt-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.rt-hud {
+  display: flex;
+  gap: 1.75rem;
+}
+
+.rt-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 3.5rem;
+}
+
+.rt-stat-label {
+  font-size: 10px;
+}
+
+.rt-stat-value {
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  color: var(--fg);
+}
+
+.rt-stat-value[data-hot="true"] {
+  color: var(--accent);
+}
+
+.rt-controls-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rt-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 0.6rem 0.9rem;
+  cursor: pointer;
+  transition: color 0.3s var(--ease), border-color 0.3s var(--ease),
+    background 0.3s var(--ease), opacity 0.3s var(--ease);
+}
+
+.rt-btn:hover {
+  color: var(--fg);
+  border-color: var(--muted);
+}
+
+.rt-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.rt-btn:disabled:hover {
+  color: var(--muted);
+  border-color: var(--line);
+}
+
+.rt-btn.is-confirming {
+  color: #ff7a7a;
+  border-color: rgba(255, 122, 122, 0.5);
+}
+
+.rt-btn:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* --- level selector ------------------------------------------------ */
+
+.rt-levels-panel {
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--bg-2);
+}
+
+.rt-diff-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.rt-diff-tab {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 0.55rem 0.95rem;
+  cursor: pointer;
+  transition: color 0.3s var(--ease), border-color 0.3s var(--ease),
+    background 0.3s var(--ease);
+}
+
+.rt-diff-tab:hover {
+  color: var(--fg);
+  border-color: var(--muted);
+}
+
+.rt-diff-tab[aria-pressed="true"] {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.rt-diff-tab:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.rt-levels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 0.5rem;
+}
+
+.rt-level-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 0.6rem 0;
+  text-align: center;
+  cursor: pointer;
+  transition: color 0.3s var(--ease), border-color 0.3s var(--ease);
+}
+
+.rt-level-btn:hover {
+  border-color: var(--muted);
+}
+
+.rt-level-btn:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.rt-level-btn.is-done {
+  color: var(--accent);
+  border-color: rgba(201, 244, 77, 0.4);
+}
+
+.rt-level-btn[aria-current="true"] {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.rt-level-btn[disabled] {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.rt-level-btn[disabled]:hover {
+  border-color: var(--line);
+}
+
+/* --- result panel --------------------------------------------------- */
+
+.rt-result {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(201, 244, 77, 0.3);
+  border-left: 3px solid var(--accent);
+  border-radius: 2px;
+  background: var(--bg-2);
+  animation: rt-result-in 240ms var(--ease) both;
+}
+
+.rt-result-title {
+  font-size: 14px;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+}
+
+.rt-result-meta {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.rt-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.rt-playagain {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  padding: 0.65rem 1.1rem;
+  cursor: pointer;
+  transition: opacity 0.2s var(--ease);
+}
+
+.rt-playagain:hover {
+  opacity: 0.85;
+}
+
+.rt-playagain:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@keyframes rt-result-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* --- board ------------------------------------------------------------ */
+
+.rt-board-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.rt-board {
+  width: 100%;
+  max-width: 640px;
+  padding: clamp(6px, 1.6vw, 14px);
+  background: radial-gradient(
+    120% 135% at 50% 36%,
+    #1e232c 0%,
+    #161a21 55%,
+    #101318 100%
+  );
+  border: 1px solid rgba(236, 236, 240, 0.09);
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 20px 48px rgba(0, 0, 0, 0.45);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rt-board svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- ropes -------------------------------------------------------------- */
+
+.rt-rope path,
+.rt-x path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rt-r-shadow,
+.rt-x-shadow {
+  stroke: rgba(0, 0, 0, 0.32);
+  stroke-width: calc(var(--rt-w, 11px) + 6px);
+  transform: translate(0.8px, 1.8px);
+}
+
+.rt-r-edge,
+.rt-x-edge {
+  stroke-width: calc(var(--rt-w, 11px) + 3px);
+}
+
+.rt-r-body,
+.rt-x-body {
+  stroke-width: var(--rt-w, 11px);
+}
+
+.rt-r-hi,
+.rt-x-hi {
+  stroke-width: calc(var(--rt-w, 11px) * 0.34);
+  opacity: 0.55;
+  transform: translate(-0.4px, -0.8px);
+}
+
+.rt-rope.is-active .rt-r-hi {
+  opacity: 0.75;
+}
+
+/* --- pegs ----------------------------------------------------------------- */
+
+.rt-peg {
+  cursor: pointer;
+  outline: none;
+}
+
+.rt-peg-hit,
+.rt-cap-hit {
+  fill: #000;
+  fill-opacity: 0;
+  stroke: none;
+}
+
+.rt-peg-rim {
+  fill: #262c36;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 1;
+  transition: stroke 0.2s var(--ease);
+}
+
+.rt-peg-ring {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 1.4;
+  stroke-dasharray: 2.2 3;
+  transition: stroke 0.2s var(--ease);
+}
+
+.rt-peg-hole {
+  fill: #0d1016;
+}
+
+.rt-peg-hole2 {
+  fill: #060709;
+}
+
+.rt-peg-target {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.4;
+  opacity: 0;
+  transition: opacity 0.18s var(--ease);
+}
+
+.rt-peg.is-target .rt-peg-ring {
+  stroke: rgba(201, 244, 77, 0.28);
+}
+
+.rt-peg.is-target .rt-peg-target {
+  opacity: 0.3;
+}
+
+.rt-peg.is-near .rt-peg-target {
+  opacity: 1;
+  stroke-width: 1.8;
+}
+
+.rt-peg.is-near .rt-peg-rim {
+  stroke: rgba(201, 244, 77, 0.85);
+}
+
+.rt-peg.is-focus .rt-peg-target {
+  opacity: 1;
+  stroke: var(--fg);
+}
+
+/* --- endpoint caps ------------------------------------------------------------ */
+
+.rt-cap {
+  cursor: grab;
+  outline: none;
+}
+
+.rt-cap:active {
+  cursor: grabbing;
+}
+
+.rt-cap-ring {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 1.4;
+  transition: stroke 0.2s var(--ease);
+}
+
+.rt-cap-base {
+  stroke: #0b0d11;
+  stroke-width: 1.2;
+  transition: transform 0.16s var(--ease);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.rt-cap-hi {
+  transition: transform 0.16s var(--ease);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.rt-cap.is-lifted .rt-cap-base,
+.rt-cap.is-lifted .rt-cap-hi {
+  transform: scale(1.28);
+}
+
+.rt-cap.is-lifted .rt-cap-base {
+  stroke: rgba(255, 255, 255, 0.35);
+}
+
+.rt-cap.is-selected .rt-cap-ring,
+.rt-cap.is-focus .rt-cap-ring {
+  stroke: var(--accent);
+  stroke-dasharray: 2.2 2.4;
+}
+
+.rt-cap.is-focus .rt-cap-ring {
+  stroke: var(--fg);
+}
+
+/* --- victory -------------------------------------------------------------------- */
+
+svg.is-won .rt-rope .rt-r-body {
+  animation: rt-win-body 700ms var(--ease) both;
+  animation-delay: calc(var(--ri, 0) * 80ms);
+}
+
+svg.is-won .rt-rope .rt-r-hi {
+  animation: rt-win-hi 700ms var(--ease) both;
+  animation-delay: calc(var(--ri, 0) * 80ms);
+}
+
+svg.is-won .rt-peg-rim {
+  animation: rt-win-peg 900ms var(--ease) both;
+  animation-delay: calc(var(--ri, 0) * 80ms);
+}
+
+@keyframes rt-win-body {
+  0% { filter: brightness(1); }
+  45% { filter: brightness(1.45); }
+  100% { filter: brightness(1.12); }
+}
+
+@keyframes rt-win-hi {
+  0% { opacity: 0.55; }
+  45% { opacity: 0.9; }
+  100% { opacity: 0.7; }
+}
+
+@keyframes rt-win-peg {
+  0% { stroke: rgba(255, 255, 255, 0.1); }
+  45% { stroke: rgba(201, 244, 77, 0.7); }
+  100% { stroke: rgba(255, 255, 255, 0.1); }
+}
+
+/* --- help / a11y ------------------------------------------------------------------ */
+
+.rt-help {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.rt-help .para {
+  margin: 0;
+}
+
+.rt-sr-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- responsive ----------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .rt-page {
+    padding-left: 3vw;
+    padding-right: 3vw;
+  }
+
+  .rt-controls {
+    justify-content: flex-start;
+  }
+
+  .rt-hud {
+    gap: 1.1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rt-btn,
+  .rt-diff-tab,
+  .rt-level-btn,
+  .rt-peg-rim,
+  .rt-peg-ring,
+  .rt-peg-target,
+  .rt-cap-ring,
+  .rt-cap-base,
+  .rt-cap-hi,
+  .rt-playagain {
+    transition: none;
+  }
+
+  svg.is-won .rt-rope .rt-r-body,
+  svg.is-won .rt-rope .rt-r-hi,
+  svg.is-won .rt-peg-rim,
+  .rt-result {
+    animation: none !important;
+  }
+
+  .rt-cap.is-lifted .rt-cap-base,
+  .rt-cap.is-lifted .rt-cap-hi {
+    transform: none;
+  }
+}

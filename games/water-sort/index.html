@@ -46,10 +46,21 @@
 
       <section class="block ws reveal">
 
+        <div class="ws-modes" role="group" aria-label="Game mode">
+          <button type="button" class="ws-mode-btn" data-ws-mode="classic" aria-pressed="true">Classic</button>
+          <button type="button" class="ws-mode-btn" data-ws-mode="challenge" aria-pressed="false">Challenge</button>
+        </div>
+
+        <div class="ws-diff" role="group" aria-label="Challenge difficulty" hidden>
+          <button type="button" class="ws-diff-btn" data-ws-difficulty="easy" aria-pressed="true">Easy</button>
+          <button type="button" class="ws-diff-btn" data-ws-difficulty="medium" aria-pressed="false">Medium</button>
+          <button type="button" class="ws-diff-btn" data-ws-difficulty="hard" aria-pressed="false">Hard</button>
+        </div>
+
         <div class="ws-controls">
           <div class="ws-hud">
             <div class="ws-stat">
-              <span class="ws-stat-label mono">Level</span>
+              <span class="ws-stat-label mono" data-ws-level-label>Level</span>
               <span class="ws-stat-value mono" data-ws-level>01</span>
             </div>
             <div class="ws-stat">
@@ -58,13 +69,25 @@
             </div>
           </div>
           <div class="ws-controls-actions">
+            <button type="button" class="ws-btn" data-ws-hint>Hint</button>
             <button type="button" class="ws-btn" data-ws-undo>Undo</button>
             <button type="button" class="ws-btn" data-ws-restart>Restart</button>
             <button type="button" class="ws-btn" data-ws-levels-toggle aria-expanded="false" aria-controls="ws-levels-panel">Levels</button>
+            <button type="button" class="ws-btn" data-ws-sound aria-pressed="true">Sound</button>
           </div>
         </div>
 
-        <p class="ws-hint mono" data-ws-hint hidden>Tap a bottle, then tap where to pour.</p>
+        <p class="ws-hint mono" data-ws-hint-tip hidden>Tap a bottle, then tap where to pour.</p>
+
+        <div class="ws-hint-panel" data-ws-hint-panel hidden>
+          <p class="ws-hint-question mono">Need a hint? Reveal the next move from this position?</p>
+          <div class="ws-hint-actions">
+            <button type="button" class="ws-playagain" data-ws-hint-confirm>Show hint</button>
+            <button type="button" class="ws-btn" data-ws-hint-cancel>Cancel</button>
+          </div>
+        </div>
+
+        <p class="ws-hint-result mono" data-ws-hint-result hidden></p>
 
         <div class="ws-levels-panel" id="ws-levels-panel" data-ws-levels-panel hidden>
           <div class="ws-levels-grid" data-ws-levels-grid></div>
@@ -73,11 +96,14 @@
         <div class="ws-result" data-ws-result hidden>
           <p class="ws-result-title mono" data-ws-result-title>Level complete</p>
           <p class="ws-result-meta mono" data-ws-result-meta>Moves 0</p>
+          <p class="ws-result-meta mono" data-ws-result-optimal hidden>Optimal —</p>
           <div class="ws-result-actions">
             <button type="button" class="ws-playagain" data-ws-next>Next level</button>
             <button type="button" class="ws-btn" data-ws-replay>Replay</button>
           </div>
         </div>
+
+        <p class="ws-gen mono" data-ws-gen hidden>Calculating…</p>
 
         <div class="ws-board-wrap">
           <div class="ws-board" data-ws-board role="group" aria-label="Water sort bottles"></div>
@@ -101,7 +127,9 @@
   </footer>
 
   <script src="../../assets/js/main.js"></script>
+  <script src="../../assets/js/water-sort-solver.js"></script>
   <script src="../../assets/js/water-sort-levels.js"></script>
+  <script src="../../assets/js/water-sort-sound.js"></script>
   <script src="../../assets/js/water-sort.js"></script>
 </body>
 </html>

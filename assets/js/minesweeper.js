@@ -65,6 +65,7 @@
   var statsPanel = document.querySelector("[data-ms-stats-panel]");
   var statsGrid = document.querySelector("[data-ms-stats-grid]");
   var statsResetBtn = document.querySelector("[data-ms-stats-reset]");
+  var soundBtn = document.querySelector("[data-ms-sound]");
 
   var state = null;
   var cellEls = [];
@@ -399,6 +400,9 @@
     }
 
     floodReveal(r, c);
+    if (window.GameAudio) {
+      window.GameAudio.ms.reveal();
+    }
     checkWin();
   }
 
@@ -452,11 +456,24 @@
       cell.questioned = false;
     }
 
+    if (cell.flagged) {
+      if (window.GameAudio) {
+        window.GameAudio.ms.flag();
+      }
+    } else if (cell.questioned) {
+      if (window.GameAudio) {
+        window.GameAudio.ms.question();
+      }
+    }
+
     state.flags += (cell.flagged ? 1 : 0) - (wasFlagged ? 1 : 0);
     renderCell(r, c);
 
     if (wasQuestioned && !cell.questioned) {
       playMarkOut(r, c);
+      if (window.GameAudio) {
+        window.GameAudio.ms.markOut();
+      }
     }
 
     updateMinesDisplay();
@@ -508,6 +525,9 @@
     });
 
     if (!lost) {
+      if (window.GameAudio) {
+        window.GameAudio.ms.reveal();
+      }
       checkWin();
     }
   }
@@ -536,6 +556,9 @@
     renderAll();
     setStatus("won");
 
+    if (window.GameAudio) {
+      window.GameAudio.ms.win();
+    }
     var isNewBest = recordGame("won", state.seconds);
     updateHud();
     applyWinAnimation();
@@ -559,6 +582,9 @@
 
     renderAll();
     setStatus("lost");
+    if (window.GameAudio) {
+      window.GameAudio.ms.mine();
+    }
     recordGame("lost", state.seconds);
     updateHud();
     applyLoseAnimation(r, c);
@@ -1051,6 +1077,25 @@
 
   if (statsResetBtn) {
     statsResetBtn.addEventListener("click", onResetStatsClick);
+  }
+
+  /* --- sound toggle ------------------------------------------------- */
+
+  function applySoundPref() {
+    if (!soundBtn || !window.GameAudio) {
+      return;
+    }
+    var on = window.GameAudio.isEnabled();
+    soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    soundBtn.textContent = on ? "Sound" : "Sound off";
+  }
+
+  if (soundBtn && window.GameAudio) {
+    soundBtn.addEventListener("click", function () {
+      window.GameAudio.toggle();
+      applySoundPref();
+    });
+    applySoundPref();
   }
 
   setStatsOpen(false);
