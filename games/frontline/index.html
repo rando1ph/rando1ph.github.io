@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0a0a0c" />
+    <meta
+      name="description"
+      content="Frontline — steer a squad through the ruins. An original arcade survival game with a seeded campaign and endless expeditions."
+    />
+    <title>Frontline — Games · RANDOLF.DEV</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3 L20 12 L12 21 L4 12 Z' fill='%23c9f44d'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="../../assets/css/style.css" />
+    <link rel="stylesheet" href="frontline.css" />
+  </head>
+  <body>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <header class="fl-header">
+      <a class="brand" href="../../">RANDOLF<span class="brand-dot">.</span></a
+      ><a class="back" href="../">← Games</a>
+    </header>
+    <main class="fl-layout">
+      <aside class="briefing">
+        <p class="eyebrow">006 / FIELD OPERATIONS</p>
+        <h1>FRONT<br />LINE<span>.</span></h1>
+        <p class="lede">Small squad.<br />Long way home.</p>
+        <p class="description">
+          Lead the last scouts through the fracture zone. Find reinforcements.
+          Break the siege.
+        </p>
+        <div class="field-notes">
+          <p><b>01</b> Drag to steer. Your squad fires automatically.</p>
+          <p><b>02</b> Cross supply crates to recruit and upgrade.</p>
+          <p><b>03</b> Dodge marked lanes. Every scout counts.</p>
+        </div>
+        <p class="keyboard-note">
+          ← → / A D &nbsp; STEER<br />SPACE / ESC &nbsp; PAUSE
+        </p>
+        <p class="edition">
+          ORIGINAL ARCADE / V1.0<br />NO ACCOUNT. JUST ONE MORE RUN.
+        </p>
+      </aside>
+      <section class="game-shell" aria-label="Frontline game">
+        <canvas
+          id="battlefield"
+          width="420"
+          height="760"
+          tabindex="0"
+          aria-label="Battlefield. Drag horizontally or use Left and Right arrows to steer. Shooting is automatic."
+        ></canvas>
+        <div class="hud" id="hud">
+          <div class="hud-stats">
+            <span id="mode-label">SECTOR 01</span
+            ><strong id="squad-label">5 <small>SCOUTS</small></strong>
+          </div>
+          <div class="hud-center">
+            <span id="distance-label">FIRST LIGHT</span
+            ><strong id="weapon-label">PULSE</strong>
+            <div class="progress"><i id="progress"></i></div>
+          </div>
+          <button id="pause" class="icon-button" aria-label="Pause game">
+            Ⅱ
+          </button>
+        </div>
+        <div id="overlay" class="overlay"></div>
+        <div id="notice" role="status" aria-live="polite" class="sr-only"></div>
+      </section>
+      <div class="game-foot">
+        <span id="hint">DRAG TO STEER · AUTO FIRE</span
+        ><button id="sound" aria-pressed="true">SOUND ON</button>
+      </div>
+    </main>
+    <script src="../../assets/js/game-audio.js"></script>
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

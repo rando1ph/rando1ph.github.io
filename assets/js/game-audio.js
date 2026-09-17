@@ -371,6 +371,85 @@
     }
   };
 
+  /* --- Frontline: soft pulse weapons and distinct battlefield cues. --- */
+  var FL = {
+    shot: function (weapon) {
+      play("fl.shot", 110, function (c, d, t) {
+        tone(c, d, t, weapon === 2 ? 155 : 240, 95, 0.1, 0.055, "sine");
+        noise(c, d, t, 0.065, 0.07, "lowpass", 1350, 380, 0.7);
+      });
+    },
+    hit: function () {
+      play("fl.hit", 110, function (c, d, t) {
+        noise(c, d, t, 0.045, 0.065, "bandpass", 900, 500, 0.6);
+      });
+    },
+    death: function () {
+      play("fl.death", 140, function (c, d, t) {
+        tone(c, d, t, 135, 55, 0.14, 0.075, "sine");
+        noise(c, d, t, 0.09, 0.08, "lowpass", 650, 160, 0.7);
+      });
+    },
+    pickup: function () {
+      play("fl.pickup", 150, function (c, d, t) {
+        tone(c, d, t, 660, 880, 0.16, 0.1, "sine");
+        tone(c, d, t + 0.07, 990, 1320, 0.18, 0.07, "sine");
+      });
+    },
+    growth: function () {
+      play("fl.growth", 150, function (c, d, t) {
+        [440, 660, 880].forEach(function (f, i) {
+          tone(c, d, t + i * 0.07, f, f, 0.2, 0.085, "sine");
+        });
+      });
+    },
+    upgrade: function () {
+      play("fl.upgrade", 180, function (c, d, t) {
+        [330, 495, 660, 990].forEach(function (f, i) {
+          tone(c, d, t + i * 0.06, f, f, 0.24, 0.085, "triangle");
+        });
+      });
+    },
+    damage: function () {
+      play("fl.damage", 200, function (c, d, t) {
+        tone(c, d, t, 170, 65, 0.24, 0.18, "sine");
+        noise(c, d, t, 0.15, 0.14, "lowpass", 800, 130, 0.7);
+      });
+    },
+    boss: function () {
+      play("fl.boss", 500, function (c, d, t) {
+        tone(c, d, t, 85, 60, 0.7, 0.18, "sine");
+        tone(c, d, t + 0.15, 127, 85, 0.5, 0.1, "triangle");
+      });
+    },
+    warning: function () {
+      play("fl.warning", 500, function (c, d, t) {
+        tone(c, d, t, 440, 440, 0.13, 0.07, "sine");
+        tone(c, d, t + 0.23, 440, 440, 0.13, 0.07, "sine");
+      });
+    },
+    impact: function () {
+      play("fl.impact", 200, function (c, d, t) {
+        tone(c, d, t, 100, 38, 0.3, 0.16, "sine");
+        noise(c, d, t, 0.21, 0.14, "lowpass", 650, 80, 0.6);
+      });
+    },
+    bossDeath: function () {
+      play("fl.bossDeath", 400, function (c, d, t) {
+        noise(c, d, t, 0.5, 0.2, "lowpass", 1300, 100, 0.7);
+        tone(c, d, t, 160, 35, 0.5, 0.18, "sine");
+      });
+    },
+    victory: function () {
+      play("fl.victory", 300, success);
+    },
+    defeat: function () {
+      play("fl.defeat", 300, function (c, d, t) {
+        resolveLow(c, d, t, false);
+      });
+    },
+  };
+
   /* --- public API ------------------------------------------------------------ */
 
   var GameAudio = {
@@ -408,6 +487,7 @@
     _voices: function () {
       return activeVoices;
     },
+    fl: FL,
     ms: MS,
     gm: GM,
     rv: RV,
