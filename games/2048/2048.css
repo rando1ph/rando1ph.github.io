@@ -1,0 +1,459 @@
+/* ------------------------------------------------------------------
+   2048 — randolf.dev game styles
+   Dark interpretation of the classic sliding-tile puzzle.
+   Shared shell (typography, header, footer) comes from style.css.
+   ------------------------------------------------------------------ */
+
+.g2 {
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.g2-page .page-head {
+  margin-bottom: clamp(1.5rem, 4vw, 2.25rem);
+}
+
+.g2-page .page-title {
+  margin: 0.5rem 0 0.9rem;
+}
+
+.g2-page .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.g2 [hidden] {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------------
+   Top bar — score / best / actions
+   ------------------------------------------------------------------ */
+
+.g2-top {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.g2-hud {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.g2-stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.3rem;
+  min-width: 5.4rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+
+.g2-stat .mono {
+  font-size: 9px;
+}
+
+.g2-stat-value {
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  color: var(--fg);
+  transition: transform 0.15s var(--ease);
+}
+
+.g2-stat-value.is-bump {
+  transform: scale(1.12);
+}
+
+.g2-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.g2-btn {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.68rem 0.95rem;
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease), color 0.15s var(--ease),
+    background 0.15s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.g2-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.g2-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.g2-btn:disabled:hover {
+  border-color: var(--line);
+  color: var(--fg);
+}
+
+.g2-btn:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.g2-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.g2-btn-primary:hover {
+  color: var(--accent-ink);
+  filter: brightness(1.08);
+}
+
+/* ------------------------------------------------------------------
+   Board
+   ------------------------------------------------------------------ */
+
+.g2-stage {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.5rem;
+}
+
+.g2-board {
+  --gap: clamp(7px, 2.2vw, 10px);
+  --pad: var(--gap);
+  --s: calc((100% - 5 * var(--gap)) / 4);
+  --g2-slide: 115ms;
+  position: relative;
+  aspect-ratio: 1;
+  width: min(100%, clamp(300px, calc(100vh - 330px), 460px));
+  width: min(100%, clamp(300px, calc(100dvh - 330px), 460px));
+  background: #101116;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.42);
+  container-type: inline-size;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: box-shadow 0.6s var(--ease);
+}
+
+.g2-board.is-glow {
+  box-shadow: 0 0 0 1px rgba(201, 244, 77, 0.32),
+    0 0 46px rgba(201, 244, 77, 0.12), 0 14px 44px rgba(0, 0, 0, 0.42);
+}
+
+/* empty cells ------------------------------------------------------ */
+
+.g2-cells {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: var(--gap);
+  padding: var(--pad);
+}
+
+.g2-cells i {
+  display: block;
+  background: rgba(236, 236, 240, 0.045);
+  border-radius: calc(var(--gap) + 3px);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+/* tiles ------------------------------------------------------------ */
+
+.g2-tiles {
+  position: absolute;
+  inset: 0;
+}
+
+.g2-tile {
+  position: absolute;
+  left: var(--pad);
+  top: var(--pad);
+  width: var(--s);
+  height: var(--s);
+  transform: translate(
+    calc(var(--c) * (100% + var(--gap))),
+    calc(var(--r) * (100% + var(--gap)))
+  );
+  transition: transform var(--g2-slide) var(--ease);
+  will-change: transform;
+  z-index: 2;
+}
+
+.g2-tile.is-dying {
+  z-index: 1;
+}
+
+.g2-tile-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: calc(var(--gap) + 3px);
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: clamp(20px, 10vw, 46px);
+  font-size: 10.5cqi;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  background: #262b33;
+  color: #c8cfda;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+/* font scale for longer numbers (fallback clamps + container units) */
+
+.g2-tile.d1 .g2-tile-inner,
+.g2-tile.d2 .g2-tile-inner {
+  font-size: clamp(20px, 10vw, 46px);
+  font-size: 10.5cqi;
+}
+
+.g2-tile.d3 .g2-tile-inner {
+  font-size: clamp(17px, 8vw, 38px);
+  font-size: 8.4cqi;
+}
+
+.g2-tile.d4 .g2-tile-inner {
+  font-size: clamp(14px, 6.6vw, 30px);
+  font-size: 6.8cqi;
+}
+
+.g2-tile.d5 .g2-tile-inner {
+  font-size: clamp(12px, 5.3vw, 25px);
+  font-size: 5.5cqi;
+}
+
+.g2-tile.d6 .g2-tile-inner {
+  font-size: clamp(10px, 4.4vw, 21px);
+  font-size: 4.6cqi;
+}
+
+.g2-tile.d7 .g2-tile-inner {
+  font-size: clamp(9px, 3.8vw, 18px);
+  font-size: 4cqi;
+}
+
+/* color hierarchy — calm dark neutrals rising to the site accent ---- */
+
+.g2-tile[data-v="2"] .g2-tile-inner   { background: #262b33; color: #c9d0dc; }
+.g2-tile[data-v="4"] .g2-tile-inner   { background: #2c3648; color: #cfd9ea; }
+.g2-tile[data-v="8"] .g2-tile-inner   { background: #2b527f; color: #e9f2ff; }
+.g2-tile[data-v="16"] .g2-tile-inner  { background: #1e6f80; color: #e5fbff; }
+.g2-tile[data-v="32"] .g2-tile-inner  { background: #238767; color: #e7fff4; }
+.g2-tile[data-v="64"] .g2-tile-inner  { background: #4d9a2e; color: #f2ffe8; }
+.g2-tile[data-v="128"] .g2-tile-inner { background: #7fae2a; color: #f8ffe2; }
+.g2-tile[data-v="256"] .g2-tile-inner { background: #b08a24; color: #fff6da; }
+.g2-tile[data-v="512"] .g2-tile-inner { background: #c26a1f; color: #fff1e1; }
+.g2-tile[data-v="1024"] .g2-tile-inner{ background: #c24a3f; color: #ffebe6; }
+
+/* 2048 — the premium tile, drawn from the site accent */
+.g2-tile[data-v="2048"] .g2-tile-inner {
+  background: linear-gradient(135deg, #d7fa6e, #9fdb2c);
+  color: #0a0a0c;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  box-shadow: 0 2px 12px rgba(201, 244, 77, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+/* beyond 2048 — cool elevated spectrum, still restrained */
+.g2-tile[data-v="4096"] .g2-tile-inner  { background: #5b46b8; color: #f1ecff; }
+.g2-tile[data-v="8192"] .g2-tile-inner  { background: #8338c9; color: #f9ecff; }
+.g2-tile[data-v="16384"] .g2-tile-inner { background: #c02f80; color: #ffeaf4; }
+.g2-tile[data-v="32768"] .g2-tile-inner { background: #e4e6ec; color: #0a0a0c; }
+.g2-tile[data-v="65536"] .g2-tile-inner,
+.g2-tile[data-v="131072"] .g2-tile-inner {
+  background: #ffffff;
+  color: #0a0a0c;
+  box-shadow: 0 0 0 1px rgba(201, 244, 77, 0.5), 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* animations -------------------------------------------------------- */
+
+@keyframes g2-in {
+  from {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes g2-pop {
+  0% {
+    transform: scale(0.72);
+  }
+  55% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.g2-tile.is-new .g2-tile-inner {
+  animation: g2-in 150ms var(--ease) 65ms backwards;
+}
+
+.g2-tile.is-merged .g2-tile-inner {
+  animation: g2-pop 170ms var(--ease);
+}
+
+/* ------------------------------------------------------------------
+   Overlay panels
+   ------------------------------------------------------------------ */
+
+.g2-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  background: rgba(10, 10, 12, 0.74);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s var(--ease);
+}
+
+.g2-overlay.is-shown {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.g2-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  width: min(88%, 300px);
+  padding: 1.5rem 1.25rem;
+  text-align: center;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+
+.g2-panel-eyebrow {
+  font-size: 9px;
+}
+
+.g2-panel-title {
+  font-family: var(--mono);
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+
+.g2-panel[data-g2-panel="win"] .g2-panel-title {
+  color: var(--accent);
+}
+
+.g2-panel-note {
+  font-size: 10px;
+  text-transform: none;
+  letter-spacing: 0.1em;
+}
+
+.g2-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+}
+
+/* ------------------------------------------------------------------
+   Help
+   ------------------------------------------------------------------ */
+
+.g2-help {
+  margin-top: 1.4rem;
+}
+
+.g2-help .para {
+  margin: 0.2rem 0;
+  text-transform: none;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+}
+
+/* ------------------------------------------------------------------
+   Mobile — maximize the board inside the page gutter
+   ------------------------------------------------------------------ */
+
+@media (max-width: 480px) {
+  .g2 {
+    margin-inline: -0.625rem;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Reduced motion
+   ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .g2-board {
+    --g2-slide: 1ms;
+  }
+
+  .g2-tile {
+    transition: none;
+  }
+
+  .g2-tile.is-new .g2-tile-inner,
+  .g2-tile.is-merged .g2-tile-inner {
+    animation: none;
+  }
+
+  .g2-stat-value,
+  .g2-overlay,
+  .g2-board {
+    transition: none;
+  }
+
+  .g2-board.is-glow {
+    box-shadow: 0 0 0 1px rgba(201, 244, 77, 0.32);
+  }
+}
