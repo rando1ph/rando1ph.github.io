@@ -1,6 +1,6 @@
 /* ------------------------------------------------------------------
    Game audio — randolf.dev (shared: Minesweeper / Gomoku / Reversi /
-   Rope Tangle). Restrained Web Audio synthesis, no assets, no BGM.
+   Rope Tangle / 2048). Restrained Web Audio synthesis, no assets, no BGM.
 
    Design follows the existing Water Sort sound module's approach:
    lazy AudioContext, one master gain, short filtered envelopes.
@@ -450,6 +450,40 @@
     },
   };
 
+  /* --- 2048 ------------------------------------------------------------- */
+
+  var G2 = {
+    /* extremely subtle slide texture; one per swipe, never per tile */
+    slide: function () {
+      play("g2.slide", 70, function (c, d, t) {
+        noise(c, d, t, 0.05, 0.026, "bandpass", vary(900, 0.08), 480, 0.9);
+      });
+    },
+    /* one grouped pop per swipe — n merges stagger quietly behind the
+       first, pitch follows the largest merged value */
+    merge: function (n, maxValue) {
+      play("g2.merge", 70, function (c, d, t) {
+        var step = Math.min(Math.max(Math.log2(maxValue || 4) - 1, 1), 11);
+        var f = 300 * Math.pow(2, step / 12);
+        tone(c, d, t, f, f * 0.55, 0.09, 0.16, "triangle");
+        tone(c, d, t, f * 2, f * 1.2, 0.06, 0.05, "sine");
+        var extra = Math.min(Math.max((n || 1) - 1, 0), 3);
+        for (var i = 1; i <= extra; i += 1) {
+          var tt = t + i * 0.045;
+          tone(c, d, tt, f * Math.pow(1.12, i), f * 0.6, 0.07, 0.085, "triangle");
+        }
+      });
+    },
+    win: function () {
+      play("g2.win", 400, success);
+    },
+    over: function () {
+      play("g2.over", 400, function (c, d, t) {
+        resolveLow(c, d, t, false);
+      });
+    }
+  };
+
   /* --- public API ------------------------------------------------------------ */
 
   var GameAudio = {
@@ -491,7 +525,8 @@
     ms: MS,
     gm: GM,
     rv: RV,
-    rt: RT
+    rt: RT,
+    g2048: G2
   };
 
   global.GameAudio = GameAudio;

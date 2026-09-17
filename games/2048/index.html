@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="2048 — merge matching tiles and keep climbing. A classic sliding-tile puzzle on randolf.dev.">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>2048 — Games · RANDOLF.DEV</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3 L20 12 L12 21 L4 12 Z' fill='%23c9f44d'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <link rel="stylesheet" href="2048.css">
+</head>
+<body>
+
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-noise" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="brand" href="../../">RANDOLF<span class="brand-dot">.</span></a>
+    <nav class="site-nav" aria-label="Primary">
+      <ul>
+        <li><a href="../../games/" aria-current="page">Games</a></li>
+        <li><a href="../../news/">News</a></li>
+        <li><a href="../../ai/">AI</a></li>
+        <li class="nav-clock"><span data-clock>--:--:-- GMT</span></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="page g2-page" id="top">
+    <div class="page-inner">
+
+      <p class="crumbs mono reveal">
+        <a href="../../"><span class="crumb-arr" aria-hidden="true">←</span> Home</a>
+        <span class="crumb-sep" aria-hidden="true">/</span>
+        <a href="../">Games</a>
+        <span class="crumb-sep" aria-hidden="true">/</span>
+        2048
+      </p>
+
+      <header class="page-head reveal">
+        <p class="section-label mono">Game 007 · 2048</p>
+        <h1 class="page-title">2048</h1>
+        <p class="page-lede">Merge matching tiles and keep climbing.</p>
+      </header>
+
+      <section class="block g2 reveal">
+        <div class="g2-top">
+          <div class="g2-hud">
+            <div class="g2-stat">
+              <span class="mono">Score</span>
+              <strong class="g2-stat-value mono" data-g2-score>0</strong>
+            </div>
+            <div class="g2-stat">
+              <span class="mono">Best</span>
+              <strong class="g2-stat-value mono" data-g2-best>0</strong>
+            </div>
+          </div>
+          <div class="g2-actions" role="group" aria-label="Game actions">
+            <button type="button" class="g2-btn" data-g2-undo disabled>Undo</button>
+            <button type="button" class="g2-btn" data-g2-new>New Game</button>
+            <button type="button" class="g2-btn" data-g2-sound aria-pressed="true">Sound</button>
+          </div>
+        </div>
+
+        <div class="g2-stage" data-g2-stage>
+          <div class="g2-board" data-g2-board>
+            <div class="g2-cells" aria-hidden="true" data-g2-cells></div>
+            <div class="g2-tiles" data-g2-tiles aria-hidden="true"></div>
+
+            <div class="g2-overlay" data-g2-overlay>
+              <div class="g2-panel" data-g2-panel="win" hidden>
+                <p class="g2-panel-eyebrow mono">Target reached</p>
+                <p class="g2-panel-title">2048</p>
+                <div class="g2-panel-actions">
+                  <button type="button" class="g2-btn g2-btn-primary" data-g2-keep>Keep Playing</button>
+                  <button type="button" class="g2-btn" data-g2-restart>New Game</button>
+                </div>
+              </div>
+              <div class="g2-panel" data-g2-panel="over" hidden>
+                <p class="g2-panel-eyebrow mono">No moves left</p>
+                <p class="g2-panel-title">Game Over</p>
+                <p class="g2-panel-note mono">Score <span data-g2-final-score>0</span> · Best <span data-g2-final-best>0</span></p>
+                <div class="g2-panel-actions">
+                  <button type="button" class="g2-btn g2-btn-primary" data-g2-restart>Try Again</button>
+                </div>
+              </div>
+              <div class="g2-panel" data-g2-panel="confirm" hidden>
+                <p class="g2-panel-eyebrow mono">New game?</p>
+                <p class="g2-panel-note mono">Current run will be lost</p>
+                <div class="g2-panel-actions">
+                  <button type="button" class="g2-btn" data-g2-cancel>Cancel</button>
+                  <button type="button" class="g2-btn g2-btn-primary" data-g2-confirm>Start</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="g2-help">
+          <p class="para mono">Desktop — arrow keys or WASD to slide. One-step Undo available.</p>
+          <p class="para mono">Mobile — swipe on the board. Reach 2048, then keep going if you dare.</p>
+        </div>
+
+        <p class="sr-only" data-g2-live role="status" aria-live="polite"></p>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="mono">© <span data-year>2026</span> RANDOLF.DEV</div>
+    <div class="mono">Built by hand — HTML · CSS · JS</div>
+    <div class="mono" data-clock>--:--:-- GMT</div>
+  </footer>
+
+  <script src="../../assets/js/main.js"></script>
+  <script src="../../assets/js/game-audio.js"></script>
+  <script src="2048.js"></script>
+</body>
+</html>
