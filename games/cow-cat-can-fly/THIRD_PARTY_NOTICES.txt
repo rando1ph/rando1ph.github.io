@@ -1,0 +1,51 @@
+THIRD-PARTY NOTICES — Cow Cat Can Fly (randolf.dev/games/cow-cat-can-fly/)
+===========================================================================
+
+This game is an original implementation. No art, audio, branding or
+visual assets were copied from any third-party project.
+
+Before implementation, the following MIT-licensed open-source Flappy-style
+browser games were inspected. Algorithmic concepts were studied and
+re-implemented in original code; where patterns were closely adapted
+(delta-time clamping, bounded vertical gap shifts, a per-obstacle
+"scored" flag, a post-game-over restart guard), this file preserves the
+notices of those projects as a courtesy under the MIT license.
+
+1) CrappyBird
+   https://github.com/varunpant/CrappyBird
+   Copyright (c) 2014 Varun Pant — MIT License
+   Studied: entity/state architecture, velocity-based flight model,
+   AABB collision.
+
+2) flappy-bird
+   https://github.com/pyforgedev/flappy-bird
+   Copyright (c) 2026 Masyura Fanni Ramadhan (pyforgedev) — MIT License
+   Studied/adapted: delta-time loop with maximum-step clamp, bounded
+   vertical delta between consecutive gap centers, score-exactly-once
+   flag, delayed restart acceptance after game over.
+
+3) flappybird
+   https://github.com/shuding/flappybird
+   Copyright (c) 2020 Shu Ding — MIT License
+   Studied: touch input handling for mobile browsers.
+
+MIT License (all three projects):
+
+  Permission is hereby granted, free of charge, to any person obtaining a
+  copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to
+  the following conditions:
+
+  The above copyright notice and this permission notice shall be included
+  in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
