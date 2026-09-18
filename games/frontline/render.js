@@ -153,6 +153,7 @@ export class Renderer {
     // Bake original procedural shapes once; drawImage keeps large battles cheap.
     this.soldierSprites = [];
     this.monsterSprites = {};
+    this.bulletSprites = {};
     const old = this.c,
       d = Math.min(devicePixelRatio || 1, 2);
     const make = (size, draw) => {
@@ -178,6 +179,38 @@ export class Renderer {
             boss,
           ),
         );
+      }
+    // Cache the five weapon trails too: hundreds of vector strokes otherwise
+    // saturate raster work in the maximum-projectile stress fixture.
+    for (const weapon of WEAPONS)
+      for (const angle of weapon.spread) {
+        const vx = Math.sin(angle) * weapon.speed;
+        this.bulletSprites[weapon.color + Math.sign(vx)] = make(32, (p) => {
+          this.line(
+            [
+              [p - vx * 0.021, 27],
+              [p, 5],
+            ],
+            weapon.color + "20",
+            7,
+          );
+          this.line(
+            [
+              [p - vx * 0.013, 19],
+              [p, 5],
+            ],
+            weapon.color,
+            3,
+          );
+          this.line(
+            [
+              [p, 10],
+              [p, 5],
+            ],
+            "#eeffff",
+            1,
+          );
+        });
       }
     this.c = old;
   }
@@ -524,7 +557,201 @@ export class Renderer {
 
     c.restore();
   }
+  amplifier(p) {
+    const c = this.c,
+      t = Math.max(-1, Math.min(1, p.tint ?? Math.sign(p.value)));
+    const rgb =
+      t < 0
+        ? [244, Math.round(177 + 75 * t), Math.round(185 + 38 * t)]
+        : [
+            Math.round(244 - 145 * t),
+            Math.round(177 + 56 * t),
+            Math.round(185 + 66 * t),
+          ];
+    const color = `rgb(${rgb.join(",")})`;
+    c.save();
+    c.translate(p.x, p.y);
+    if (!this.reduced) {
+      const bump = 1 + (p.hit || 0) * 0.24;
+      c.scale(bump, bump);
+    }
+    this.ellipse(0, 27, 43, 8, "#080f2255");
+    this.path(
+      [
+        [-43, -23],
+        [-33, -32],
+        [33, -32],
+        [43, -23],
+        [43, 22],
+        [32, 31],
+        [-32, 31],
+        [-43, 22],
+      ],
+      p.value < 0 ? "#4d283c" : "#153e59",
+      color,
+      2.5,
+    );
+    this.line(
+      [
+        [-39, -15],
+        [-39, 15],
+      ],
+      color,
+      3,
+    );
+    this.line(
+      [
+        [39, -15],
+        [39, 15],
+      ],
+      color,
+      3,
+    );
+    if (p.hit > 0) this.box(-36, -25, 72, 50, 4, "#ffffff18");
+    this.text(
+      p.value > 0 ? "+" + p.value : String(p.value),
+      0,
+      10,
+      30,
+      p.hit > 0 ? "#fff" : color,
+    );
+    this.text("AMPLIFY", 0, -39, 9, color);
+    // Crosshair + upward ticks make this look shootable, unlike the solid supply box.
+    this.line(
+      [
+        [-14, 39],
+        [-7, 39],
+        [-7, 34],
+      ],
+      color,
+      1.5,
+    );
+    this.line(
+      [
+        [14, 39],
+        [7, 39],
+        [7, 34],
+      ],
+      color,
+      1.5,
+    );
+    this.text(p.value >= p.maxValue ? "MAX" : "HIT +1", 0, 50, 8, color);
+    c.restore();
+  }
+  sealedCrate(p) {
+    const c = this.c,
+      color = p.kind === "weapon" ? "#ffd088" : "#8ecef0";
+    c.save();
+    c.translate(p.x, p.y);
+    if (!this.reduced && p.hit) c.translate(Math.sin(p.age * 50) * 1.5, 0);
+    this.ellipse(0, 32, 35, 9, "#08122566");
+    this.box(-33, -28, 66, 56, 5, p.hit > 0 ? "#8d7960" : "#514b46", color, 2);
+    this.path(
+      [
+        [-33, -28],
+        [-24, -36],
+        [29, -36],
+        [33, -28],
+      ],
+      "#8b7357",
+      color,
+      1.5,
+    );
+    this.line(
+      [
+        [-24, -21],
+        [24, 20],
+      ],
+      "#b8986666",
+      5,
+    );
+    this.line(
+      [
+        [24, -21],
+        [-24, 20],
+      ],
+      "#b8986666",
+      5,
+    );
+    this.box(-11, -12, 22, 25, 3, "#252e3c", color, 1.5);
+    this.text(
+      p.kind === "weapon" ? "W" : p.kind === "rapid" ? "»" : "↑",
+      0,
+      7,
+      16,
+      color,
+    );
+    this.box(-31, 34, 62, 7, 2, "#111925");
+    this.box(-31, 34, 62 * Math.max(0, p.hp / p.maxHp), 7, 2, color);
+    this.text(`${Math.ceil(p.hp)} HP`, 0, 54, 11, color);
+    this.text(
+      p.kind === "weapon" ? "WEAPON" : p.kind === "rapid" ? "RATE" : "POWER",
+      0,
+      -43,
+      9,
+      color,
+    );
+    c.restore();
+  }
+  upgradeDrop(p) {
+    const c = this.c,
+      color = p.kind === "weapon" ? "#ffda8a" : "#86eaf5";
+    c.save();
+    c.translate(p.x, p.y);
+    this.ellipse(0, 20, 23, 7, "#080e2266");
+    this.path(
+      [
+        [0, -27],
+        [24, 0],
+        [0, 27],
+        [-24, 0],
+      ],
+      "#173c4c",
+      color,
+      2.3,
+    );
+    this.path(
+      [
+        [0, -20],
+        [17, 0],
+        [0, 20],
+        [-17, 0],
+      ],
+      "#ffc76922",
+      null,
+    );
+    this.text(
+      p.kind === "weapon" ? "W" : p.kind === "rapid" ? "»" : "↑",
+      0,
+      6,
+      18,
+      color,
+    );
+    this.text("COLLECT", 0, 41, 9, color);
+    this.line(
+      [
+        [-5, -36],
+        [0, -31],
+        [5, -36],
+      ],
+      color,
+      2,
+    );
+    c.restore();
+  }
   crate(p) {
+    if (p.type === "panel") {
+      this.amplifier(p);
+      return;
+    }
+    if (p.type === "crate") {
+      this.sealedCrate(p);
+      return;
+    }
+    if (p.type === "drop") {
+      this.upgradeDrop(p);
+      return;
+    }
     const c = this.c,
       x = p.x,
       y = p.y + Math.sin(p.age * 3) * 2,
@@ -612,7 +839,7 @@ export class Renderer {
         : weapon
           ? "WEAPON"
           : p.kind === "squad"
-            ? "SCOUTS"
+            ? "SUPPLY"
             : p.kind === "rapid"
               ? "RATE"
               : "POWER",
@@ -646,7 +873,7 @@ export class Renderer {
       );
     c.fillStyle = "#212938";
     c.fillRect(0, 0, W, H);
-    const scroll = (g.time * 31) % 850;
+    const scroll = (g.time * 39) % 850;
     c.drawImage(this.scenery, 0, scroll - 850);
     c.drawImage(this.scenery, 0, scroll);
     // Repeating roadside beacons, rusted rails and abandoned utility cabinets.
@@ -742,30 +969,8 @@ export class Renderer {
     for (const e of g.enemies) this.monster(e);
     if (boss) this.monster(boss, true);
     for (const b of g.bullets) {
-      this.line(
-        [
-          [b.x, b.y + 15],
-          [b.x, b.y],
-        ],
-        b.color + "20",
-        7,
-      );
-      this.line(
-        [
-          [b.x, b.y + 10],
-          [b.x, b.y],
-        ],
-        b.color,
-        3,
-      );
-      this.line(
-        [
-          [b.x, b.y + 5],
-          [b.x, b.y],
-        ],
-        "#eeffff",
-        1,
-      );
+      const sprite = this.bulletSprites[b.color + Math.sign(b.vx)];
+      if (sprite) c.drawImage(sprite.tile, b.x - 16, b.y - 5, 32, 32);
     }
     for (const h of g.hostile) {
       this.ellipse(h.x, h.y, h.r + 5, h.r + 5, "#ff528233");
@@ -825,6 +1030,39 @@ export class Renderer {
         5,
         2,
         "#f47b9a",
+      );
+    }
+    if (g.banner) {
+      const b = g.banner;
+      c.globalAlpha = Math.min(1, b.life * 2);
+      this.box(
+        77,
+        132,
+        266,
+        43,
+        7,
+        "#101929ee",
+        b.kind === "horde" ? "#dd9da966" : "#e8be8266",
+        1,
+      );
+      this.text(
+        b.text,
+        210,
+        150,
+        12,
+        b.kind === "horde" ? "#ffadb8" : "#ffda9b",
+      );
+      this.text(b.detail, 210, 165, 10, "#c3d3df");
+      c.globalAlpha = 1;
+    } else if (g.bossPending) {
+      this.text(
+        g.enemies.length || g.hostile.length
+          ? "GUARDIAN INBOUND · CLEAR THE ROAD"
+          : `GUARDIAN IN ${Math.max(1, Math.ceil((g.bossReadyAt ?? g.nextBoss) - g.time))}`,
+        210,
+        149,
+        10,
+        "#ffda9b",
       );
     }
     c.restore();

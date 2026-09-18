@@ -502,3 +502,9 @@ canvas:focus-visible {
 .panel .level-grid + .secondary {
   margin-top: 24px;
 }
+
+.mission .mastery {
+  color: #c9f44d;
+  font: 9px var(--mono);
+  margin-top: 9px;
+}

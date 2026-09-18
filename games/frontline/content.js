@@ -5,34 +5,34 @@ export const W = 420,
 export const WEAPONS = [
   {
     name: "PULSE",
-    interval: 0.52,
+    interval: 0.44,
     damage: 1,
-    speed: 610,
+    speed: 1040,
     spread: [0],
     color: "#64edff",
   },
   {
     name: "REPEATER",
-    interval: 0.29,
+    interval: 0.24,
     damage: 1.25,
-    speed: 730,
+    speed: 1420,
     spread: [0],
     color: "#9bffdc",
   },
   {
     name: "TRIDENT",
-    interval: 0.43,
+    interval: 0.42,
     damage: 1.15,
-    speed: 650,
-    spread: [-0.13, 0, 0.13],
+    speed: 1160,
+    spread: [-0.1, 0, 0.1],
     color: "#ffdc86",
   },
 ];
 export const ENEMIES = {
-  grunt: { hp: 6, speed: 37, radius: 18, hurt: 2, points: 30 },
-  runner: { hp: 4, speed: 69, radius: 14, hurt: 2, points: 40 },
-  brute: { hp: 48, speed: 26, radius: 31, hurt: 4, points: 100 },
-  elite: { hp: 75, speed: 30, radius: 26, hurt: 4, points: 180 },
+  grunt: { hp: 6, speed: 49, radius: 18, hurt: 2, points: 30 },
+  runner: { hp: 4, speed: 92, radius: 14, hurt: 2, points: 40 },
+  brute: { hp: 48, speed: 32, radius: 31, hurt: 4, points: 100 },
+  elite: { hp: 75, speed: 40, radius: 26, hurt: 4, points: 180 },
 };
 export function random(seed) {
   let s = seed >>> 0;
@@ -44,21 +44,23 @@ export function random(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+// A lane may contain a pack or staggered layers, keeping wave composition data-driven.
+const pack = (kind, min, max, offset = 0) => ({ kind, min, max, offset });
 export const BLOCKS = {
   welcome: {
-    lanes: ["squad", null, "grunt"],
+    lanes: ["squad", null, [pack("grunt", 1, 2)]],
     threatBudget: 1,
     rewardBudget: 3,
     tags: ["opening"],
   },
   choice: {
-    lanes: ["squad", "grunt", "weapon"],
+    lanes: ["squad", [pack("grunt", 2, 3)], "weapon"],
     threatBudget: 2,
     rewardBudget: 3,
     tags: ["choice"],
   },
   patrol: {
-    lanes: ["grunt", "squad", "grunt"],
+    lanes: [[pack("grunt", 2, 3)], "squad", [pack("grunt", 2, 3)]],
     threatBudget: 3,
     rewardBudget: 2,
     tags: ["pressure"],
@@ -70,49 +72,135 @@ export const BLOCKS = {
     tags: ["recovery"],
   },
   rush: {
-    lanes: ["runner", null, "squad"],
+    lanes: [[pack("runner", 2, 3)], null, "squad"],
     threatBudget: 3,
     rewardBudget: 2,
     tags: ["fast"],
   },
   wall: {
-    lanes: ["brute", "weapon", null],
+    lanes: [[pack("brute", 1, 1)], "weapon", "squad"],
     threatBudget: 5,
-    rewardBudget: 1,
-    tags: ["heavy"],
+    rewardBudget: 3,
+    tags: ["heavy", "conflict"],
   },
   champion: {
-    lanes: ["elite", "squad", "rapid"],
+    lanes: [[pack("elite", 1, 1), pack("grunt", 2, 3, 80)], "squad", "rapid"],
     threatBudget: 7,
     rewardBudget: 3,
-    tags: ["elite"],
+    tags: ["elite", "conflict"],
   },
   risk: {
-    lanes: ["brute+squad", null, "grunt"],
+    lanes: [
+      [pack("brute", 1, 1), pack("squad", 1, 1, 110)],
+      null,
+      [pack("grunt", 2, 3)],
+    ],
     threatBudget: 6,
     rewardBudget: 4,
     tags: ["risk"],
   },
+  amplify: {
+    lanes: ["amplifier", [pack("grunt", 2, 3)], "squad"],
+    threatBudget: 3,
+    rewardBudget: 4,
+    tags: ["panel", "conflict"],
+  },
+  investment: {
+    lanes: ["amplifier", [pack("grunt", 3, 4)], "weapon"],
+    threatBudget: 5,
+    rewardBudget: 4,
+    tags: ["panel", "conflict"],
+  },
   crossfire: {
-    lanes: ["runner", "squad", "elite"],
+    lanes: [
+      [pack("runner", 2, 3)],
+      "amplifier",
+      [pack("elite", 1, 1), pack("grunt", 2, 3, 90)],
+    ],
     threatBudget: 9,
+    rewardBudget: 4,
+    tags: ["mixed", "conflict"],
+  },
+  swarm: {
+    lanes: [[pack("grunt", 4, 5)], "squad", [pack("grunt", 3, 4)]],
+    threatBudget: 8,
     rewardBudget: 3,
-    tags: ["mixed"],
+    tags: ["horde"],
+  },
+  stampede: {
+    lanes: [[pack("runner", 3, 4)], "amplifier", [pack("grunt", 3, 4, 70)]],
+    threatBudget: 10,
+    rewardBudget: 5,
+    tags: ["horde", "conflict"],
+  },
+  escort: {
+    lanes: [
+      [pack("brute", 1, 1, 100), pack("runner", 3, 4)],
+      "weapon",
+      [pack("grunt", 3, 4)],
+    ],
+    threatBudget: 11,
+    rewardBudget: 2,
+    tags: ["horde", "conflict"],
+  },
+  screen: {
+    lanes: [
+      [pack("grunt", 4, 5), pack("elite", 1, 1, 180)],
+      "amplifier",
+      [pack("grunt", 3, 4, 90)],
+    ],
+    threatBudget: 13,
+    rewardBudget: 5,
+    tags: ["horde", "elite", "conflict"],
+  },
+  split: {
+    lanes: [
+      [pack("runner", 3, 4), pack("grunt", 3, 4, 230)],
+      "squad",
+      [pack("brute", 1, 1), pack("runner", 2, 3, 190)],
+    ],
+    threatBudget: 14,
+    rewardBudget: 3,
+    tags: ["horde", "staggered"],
+  },
+  siege: {
+    lanes: [
+      [pack("elite", 1, 1, 150), pack("grunt", 4, 5)],
+      "amplifier",
+      [pack("elite", 1, 1, 200), pack("runner", 3, 4)],
+    ],
+    threatBudget: 17,
+    rewardBudget: 5,
+    tags: ["horde", "elite", "conflict"],
+  },
+  priority: {
+    lanes: [
+      "amplifier",
+      [
+        pack("brute", 1, 1, 150),
+        pack("grunt", 4, 5),
+        pack("runner", 2, 3, 190),
+      ],
+      "weapon",
+    ],
+    threatBudget: 12,
+    rewardBudget: 5,
+    tags: ["horde", "conflict"],
   },
   recovery: {
-    lanes: ["squad", "weapon", "rapid"],
+    lanes: ["squad", "squad", null],
     threatBudget: 0,
     rewardBudget: 4,
     tags: ["recovery"],
   },
 };
-// Fixed pacing and introductions; lane order and bounded details vary by seed.
+// Preserve the ten sector identities; introduce V2 interactions progressively.
 export const LEVELS = [
   {
     name: "First light",
-    subtitle: "Recruit scouts. Learn to hold the road.",
+    subtitle: "Build your squad. Break the first siege.",
     boss: "warden",
-    duration: 78,
+    duration: 68,
     pool: ["grunt"],
     skeleton: [
       "welcome",
@@ -127,250 +215,266 @@ export const LEVELS = [
   },
   {
     name: "Supply line",
-    subtitle: "Choose between more scouts and better weapons.",
+    subtitle: "Shoot amplifiers. Turn danger into recruits.",
     boss: "warden",
-    duration: 80,
+    duration: 70,
     pool: ["grunt"],
     skeleton: [
       "welcome",
+      "amplify",
       "choice",
       "patrol",
-      "choice",
-      "risk",
       "supply",
-      "choice",
+      "amplify",
       "patrol",
+      "amplify",
       "recovery",
     ],
   },
   {
     name: "Red rush",
-    subtitle: "Runners close the gap. Watch the flanks.",
+    subtitle: "Break upgrade crates before the runners arrive.",
     boss: "warden",
-    duration: 82,
+    duration: 72,
     pool: ["grunt", "runner"],
     skeleton: [
       "welcome",
       "choice",
-      "rush",
-      "patrol",
+      "amplify",
       "rush",
       "supply",
+      "investment",
       "rush",
-      "choice",
       "patrol",
+      "choice",
       "recovery",
     ],
   },
   {
     name: "Heavy weather",
-    subtitle: "Brutes take a beating. Bring firepower.",
+    subtitle: "Your bullets cannot solve every lane.",
     boss: "warden",
-    duration: 84,
+    duration: 74,
     pool: ["grunt", "runner", "brute"],
     skeleton: [
       "welcome",
       "choice",
+      "investment",
       "wall",
-      "rush",
       "supply",
-      "risk",
+      "amplify",
+      "rush",
+      "investment",
       "wall",
-      "choice",
       "patrol",
       "recovery",
     ],
   },
   {
     name: "Violet signal",
-    subtitle: "Elites launch shards. Keep moving.",
+    subtitle: "The horde is coming. Pick your firing line.",
     boss: "warden",
-    duration: 85,
-    pool: ["grunt", "runner", "brute", "elite"],
+    duration: 76,
+    pool: ["grunt", "runner", "brute"],
     skeleton: [
       "welcome",
       "choice",
-      "champion",
-      "supply",
-      "wall",
-      "rush",
-      "choice",
-      "champion",
+      "amplify",
       "patrol",
+      "swarm",
+      "supply",
+      "investment",
+      "escort",
+      "amplify",
+      "stampede",
       "recovery",
     ],
   },
   {
     name: "The fracture",
-    subtitle: "Meet the Rift Maw. Two lanes can fall.",
+    subtitle: "Elites shelter behind the horde.",
+    boss: "maw",
+    duration: 78,
+    pool: ["grunt", "runner", "brute", "elite"],
+    skeleton: [
+      "welcome",
+      "choice",
+      "amplify",
+      "champion",
+      "swarm",
+      "supply",
+      "investment",
+      "screen",
+      "crossfire",
+      "escort",
+      "recovery",
+    ],
+  },
+  {
+    name: "Narrow escape",
+    subtitle: "Invest in panels while the road closes in.",
+    boss: "warden",
+    duration: 80,
+    pool: ["grunt", "runner", "brute", "elite"],
+    skeleton: [
+      "welcome",
+      "choice",
+      "investment",
+      "swarm",
+      "priority",
+      "supply",
+      "crossfire",
+      "screen",
+      "amplify",
+      "split",
+      "recovery",
+    ],
+  },
+  {
+    name: "Nightfall",
+    subtitle: "Staggered hordes. Elite screens. Keep a way out.",
+    boss: "maw",
+    duration: 82,
+    pool: ["grunt", "runner", "brute", "elite"],
+    skeleton: [
+      "welcome",
+      "choice",
+      "amplify",
+      "escort",
+      "screen",
+      "supply",
+      "priority",
+      "split",
+      "crossfire",
+      "siege",
+      "recovery",
+    ],
+  },
+  {
+    name: "Last relay",
+    subtitle: "Save your firepower for what matters most.",
+    boss: "warden",
+    duration: 84,
+    pool: ["grunt", "runner", "brute", "elite"],
+    skeleton: [
+      "welcome",
+      "choice",
+      "investment",
+      "swarm",
+      "screen",
+      "supply",
+      "priority",
+      "siege",
+      "investment",
+      "split",
+      "screen",
+      "recovery",
+    ],
+  },
+  {
+    name: "Daybreak",
+    subtitle: "Grow. Hold. Break through the final horde.",
     boss: "maw",
     duration: 86,
     pool: ["grunt", "runner", "brute", "elite"],
     skeleton: [
       "welcome",
       "choice",
-      "wall",
-      "rush",
+      "amplify",
+      "escort",
+      "screen",
       "supply",
-      "champion",
-      "risk",
-      "choice",
-      "crossfire",
-      "recovery",
-    ],
-  },
-  {
-    name: "Narrow escape",
-    subtitle: "A guarded cache is worth the risk.",
-    boss: "warden",
-    duration: 88,
-    pool: ["grunt", "runner", "brute", "elite"],
-    skeleton: [
-      "welcome",
-      "choice",
-      "risk",
-      "crossfire",
-      "supply",
-      "risk",
-      "wall",
-      "champion",
-      "choice",
-      "risk",
-      "recovery",
-    ],
-  },
-  {
-    name: "Nightfall",
-    subtitle: "Mixed patrols. No easy lane to hold.",
-    boss: "maw",
-    duration: 90,
-    pool: ["grunt", "runner", "brute", "elite"],
-    skeleton: [
-      "welcome",
-      "choice",
-      "crossfire",
-      "wall",
-      "supply",
-      "champion",
-      "risk",
-      "crossfire",
-      "choice",
-      "champion",
-      "recovery",
-    ],
-  },
-  {
-    name: "Last relay",
-    subtitle: "Build a squad that can survive the siege.",
-    boss: "warden",
-    duration: 92,
-    pool: ["grunt", "runner", "brute", "elite"],
-    skeleton: [
-      "welcome",
-      "choice",
-      "champion",
-      "crossfire",
-      "supply",
-      "risk",
-      "crossfire",
-      "wall",
-      "choice",
-      "champion",
-      "crossfire",
-      "recovery",
-    ],
-  },
-  {
-    name: "Daybreak",
-    subtitle: "One final push. Bring everyone home.",
-    boss: "maw",
-    duration: 94,
-    pool: ["grunt", "runner", "brute", "elite"],
-    skeleton: [
-      "welcome",
-      "choice",
-      "crossfire",
-      "champion",
-      "supply",
-      "risk",
-      "crossfire",
-      "champion",
-      "choice",
-      "wall",
-      "crossfire",
+      "priority",
+      "siege",
+      "investment",
+      "split",
+      "siege",
       "recovery",
     ],
   },
 ];
-export function endlessEncounter(seed, wave, time) {
-  const rng = random(seed),
-    band = Math.min(12, Math.floor(time / 45));
-  const budget = Math.min(12, 2 + band * 2);
-  const eligible = Object.keys(BLOCKS).filter(
-    (k) =>
-      BLOCKS[k].threatBudget <= budget &&
-      !["recovery", "supply", "welcome"].includes(k),
-  );
-  // Every fourth block is recovery. The first two are always learnable choices.
-  const key =
-    wave === 0
-      ? "welcome"
-      : wave === 1
-        ? "choice"
-        : wave % 4 === 3
-          ? "recovery"
-          : eligible[Math.floor(rng() * eligible.length)];
-  const block = encounter(key, rng() * 4294967296, band);
-  // Late bands add fast escorts to existing threat lanes, preserving a clear lane.
-  if (band >= 4 && !block.tags.includes("recovery")) {
-    const heavy = block.items.find(
-      (p) => p.kind === "elite" || p.kind === "brute",
-    );
-    if (heavy)
-      block.items.push({
-        kind: "runner",
-        x: heavy.x + 12,
-        y: heavy.y - 75,
-        value: 1,
-        scale: 1 + band * 0.1,
-      });
-  }
-  return { ...block, band, budget };
+export function pacing(band = 0, phase = 0.5) {
+  return {
+    enemySpeed: 1 + Math.min(0.3, band * 0.035) + phase * 0.12,
+    objectSpeed: 80 + Math.min(14, band * 1.8),
+    interval: Math.max(3.5, 6.3 - band * 0.32),
+    budget: Math.min(22, 3 + band * 3),
+  };
 }
-
-export function encounter(key, seed, band = 0, pool = Object.keys(ENEMIES)) {
+export function encounter(
+  key,
+  seed,
+  band = 0,
+  pool = Object.keys(ENEMIES),
+  options = {},
+) {
   const rng = random(seed),
-    block = BLOCKS[key];
-  const order = [0, 1, 2];
+    block = BLOCKS[key],
+    order = [0, 1, 2],
+    items = [];
   for (let i = 2; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
     [order[i], order[j]] = [order[j], order[i]];
   }
-  const items = [];
+  const pace = pacing(band, options.phase ?? 0.5);
   block.lanes.forEach((slot, i) => {
     if (!slot) return;
-    slot.split("+").forEach((raw, layer) => {
-      let kind = raw;
+    const layers = Array.isArray(slot)
+      ? slot
+      : slot.split("+").map((kind, layer) => pack(kind, 1, 1, layer * 105));
+    for (const layer of layers) {
+      let kind = layer.kind;
       if (ENEMIES[kind] && !pool.includes(kind)) kind = pool[0];
       const enemy = !!ENEMIES[kind];
       const count =
-        enemy && (kind === "grunt" || kind === "runner")
-          ? 1 + Math.min(2, Math.floor(rng() * (1 + band * 0.4)))
-          : 1;
-      for (let n = 0; n < count; n++)
-        items.push({
+        layer.min +
+        Math.floor(rng() * (layer.max - layer.min + 1)) +
+        (enemy && kind === "grunt" && block.tags.includes("horde")
+          ? Math.min(2, Math.floor(band / 4))
+          : 0);
+      for (let n = 0; n < count; n++) {
+        const x =
+          LANES[order[i]] +
+          (enemy ? ((n % 2) * 2 - 1) * 16 + (rng() - 0.5) * 8 : 0);
+        const item = {
           kind,
-          x: LANES[order[i]] + (enemy ? (rng() - 0.5) * 20 : 0),
-          y: -30 - n * 43 - layer * 105,
+          x,
+          y: -35 - Math.floor(n / 2) * 53 - (layer.offset || 0),
           value:
             kind === "squad"
               ? key === "risk"
                 ? 4
                 : 2 + Math.floor(rng() * 2)
               : 1,
-          scale: 1 + band * 0.11 + rng() * 0.08,
-        });
-    });
+          scale: 1 + Math.min(0.5, band * 0.055) + rng() * 0.06,
+          speedScale: pace.enemySpeed,
+          speed: enemy ? undefined : pace.objectSpeed,
+        };
+        if (kind === "amplifier") {
+          const variant = options.intro
+            ? "mild"
+            : ["mild", "deep", "positive"][Math.floor(rng() * 3)];
+          item.value =
+            variant === "positive"
+              ? 2 + Math.floor(rng() * 2)
+              : variant === "deep"
+                ? -(10 + Math.floor(rng() * 5))
+                : -(4 + Math.floor(rng() * 4));
+          item.minValue = -16;
+          item.maxValue =
+            variant === "deep" ? 12 : variant === "positive" ? 6 : 8;
+          item.variant = variant;
+        }
+        if (["weapon", "damage", "rapid"].includes(kind)) {
+          item.crated = options.crates !== false;
+          item.hp =
+            (kind === "weapon" ? 14 : 10) +
+            Math.floor(rng() * 5) +
+            Math.min(8, Math.floor(band));
+        }
+        items.push(item);
+      }
+    }
   });
   return {
     key,
@@ -378,13 +482,67 @@ export function encounter(key, seed, band = 0, pool = Object.keys(ENEMIES)) {
     threatBudget: block.threatBudget,
     rewardBudget: block.rewardBudget,
     tags: block.tags,
+    band,
+    pace,
   };
 }
 export function campaign(seed, level = 0) {
   const spec = LEVELS[level],
     rng = random(seed);
-  return spec.skeleton.map((key, i) => ({
-    at: 1 + (i * (spec.duration - 16)) / spec.skeleton.length,
-    ...encounter(key, rng() * 4294967296, level * 0.6, spec.pool),
-  }));
+  // Build -> tighten -> recover -> surge. Nonuniform gaps replace V1's flat spacing.
+  const weights = spec.skeleton.map((key, i) =>
+    i < 2
+      ? 1.35
+      : key === "supply"
+        ? 1.05
+        : i > spec.skeleton.length * 0.6
+          ? 0.78
+          : 1,
+  );
+  const total = weights.slice(1).reduce((a, b) => a + b, 0),
+    window = spec.duration - 17;
+  let at = 1;
+  return spec.skeleton.map((key, i) => {
+    if (i) at += (weights[i] / total) * (window - 1);
+    const phase = i / (spec.skeleton.length - 1),
+      band = (level * 0.55 + phase * 1.5) * (i < 2 ? 0.25 : 1);
+    return {
+      at,
+      ...encounter(key, rng() * 4294967296, band, spec.pool, {
+        phase,
+        crates: level >= 2,
+        intro: level === 1,
+      }),
+    };
+  });
+}
+export function endlessEncounter(seed, wave, time) {
+  const rng = random(seed),
+    band = Math.min(12, Math.floor(time / 32)),
+    pace = pacing(band);
+  const hordes = Object.keys(BLOCKS).filter(
+    (k) =>
+      BLOCKS[k].tags.includes("horde") && BLOCKS[k].threatBudget <= pace.budget,
+  );
+  const choices = Object.keys(BLOCKS).filter(
+    (k) =>
+      !BLOCKS[k].tags.includes("horde") &&
+      !["welcome", "recovery", "supply"].includes(k) &&
+      BLOCKS[k].threatBudget <= pace.budget,
+  );
+  let key;
+  if (wave === 0) key = "welcome";
+  else if (wave === 1) key = "choice";
+  else if (wave % 5 === 4) key = "recovery";
+  else if (
+    hordes.length &&
+    (wave % 5 === 3 || rng() < Math.min(0.65, 0.22 + band * 0.055))
+  )
+    key = hordes[Math.floor(rng() * hordes.length)];
+  else key = choices[Math.floor(rng() * choices.length)];
+  return {
+    ...encounter(key, rng() * 4294967296, band),
+    band,
+    budget: pace.budget,
+  };
 }

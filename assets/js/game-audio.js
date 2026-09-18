@@ -440,6 +440,35 @@
         tone(c, d, t, 160, 35, 0.5, 0.18, "sine");
       });
     },
+    panelHit: function () {
+      play("fl.panelHit", 140, function (c, d, t) {
+        tone(c, d, t, 380, 530, 0.055, 0.035, "sine");
+      });
+    },
+    panelPositive: function () {
+      play("fl.panelPositive", 250, function (c, d, t) {
+        tone(c, d, t, 640, 880, 0.14, 0.07, "sine");
+        tone(c, d, t + 0.08, 960, 1100, 0.16, 0.06, "sine");
+      });
+    },
+    crateHit: function () {
+      play("fl.crateHit", 140, function (c, d, t) {
+        noise(c, d, t, 0.05, 0.065, "bandpass", 1400, 650, 0.7);
+        tone(c, d, t, 210, 160, 0.05, 0.04, "sine");
+      });
+    },
+    crateBreak: function () {
+      play("fl.crateBreak", 200, function (c, d, t) {
+        noise(c, d, t, 0.18, 0.12, "lowpass", 1300, 240, 0.7);
+        tone(c, d, t + 0.06, 520, 780, 0.2, 0.075, "triangle");
+      });
+    },
+    horde: function () {
+      play("fl.horde", 1200, function (c, d, t) {
+        tone(c, d, t, 175, 140, 0.25, 0.09, "sine");
+        tone(c, d, t + 0.22, 175, 110, 0.35, 0.08, "sine");
+      });
+    },
     victory: function () {
       play("fl.victory", 300, success);
     },

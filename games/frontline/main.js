@@ -11,6 +11,7 @@ function freshSave() {
     version: 1,
     completed: [],
     seeds: {},
+    mastery: {},
     best: { score: 0, distance: 0, bosses: 0 },
   };
 }
@@ -40,7 +41,21 @@ function load() {
       best[k] = Number.isFinite(s.best?.[k])
         ? Math.max(0, Math.floor(s.best[k]))
         : 0;
-    return { version: 1, completed, seeds, best };
+    const mastery = {};
+    for (let i = 0; i < LEVELS.length; i++) {
+      const m = s.mastery?.[i];
+      if (
+        m &&
+        Number.isFinite(m.time) &&
+        m.time > 0 &&
+        Number.isInteger(m.survivors) &&
+        m.survivors >= 0 &&
+        m.survivors <= 60
+      )
+        mastery[i] = { time: m.time, survivors: m.survivors };
+    }
+    // Additive V1 migration: retain completion, seeds, records and the storage key.
+    return { version: 1, completed, seeds, best, mastery };
   } catch {
     return freshSave();
   }
@@ -95,6 +110,13 @@ function endRecord() {
     !save.completed.includes(game.level)
   )
     save.completed.push(game.level);
+  if (game.mode === "campaign" && game.state === "won") {
+    const m = save.mastery[game.level];
+    save.mastery[game.level] = {
+      survivors: Math.max(m?.survivors ?? 0, game.squad),
+      time: Math.min(m?.time ?? Infinity, game.time),
+    };
+  }
   if (game.mode === "endless")
     for (const k of ["score", "distance", "bosses"])
       save.best[k] = Math.max(save.best[k], game[k]);
@@ -109,11 +131,11 @@ function menu() {
   const spec = LEVELS[selected];
   panel(`<p class="eyebrow">THE FRACTURE ZONE</p><h2>FRONT<span>LINE</span></h2>
     <p class="sub">A few scouts. An advancing horde.<br>Make every lane count.</p>
-    <div class="mission"><small>CAMPAIGN / SECTOR ${String(selected + 1).padStart(2, "0")} ${save.completed.includes(selected) ? "· CLEARED" : ""}</small><strong>${spec.name}</strong><p>${spec.subtitle}</p></div>
+    <div class="mission"><small>CAMPAIGN / SECTOR ${String(selected + 1).padStart(2, "0")} ${save.completed.includes(selected) ? "· CLEARED" : ""}</small><strong>${spec.name}</strong><p>${spec.subtitle}</p>${save.mastery[selected] ? `<p class="mastery">BEST ${save.mastery[selected].survivors} SCOUTS · ${save.mastery[selected].time.toFixed(1)}s</p>` : ""}</div>
     <button class="primary" data-action="start">DEPLOY SQUAD →</button>
     <div class="menu-links"><button data-action="sectors">Choose sector · ${save.completed.length}/10</button>${save.completed.includes(selected) ? '<button data-action="fresh">New layout</button>' : ""}</div>
     <button class="secondary endless-button" data-action="endless">ENDLESS EXPEDITION <span>Best ${save.best.distance.toLocaleString()} m · ${save.best.score.toLocaleString()} pts</span></button>
-    <p class="small-copy">DRAG TO STEER · SHOOTING IS AUTOMATIC<br>CROSS CRATES TO COLLECT · DODGE MARKED LANES</p>`);
+    <p class="small-copy">DRAG TO STEER · SHOOTING IS AUTOMATIC<br>SHOOT PANELS & SEALED CRATES · DODGE MARKED LANES</p>`);
   $("hint").textContent = "DRAG TO STEER · AUTO FIRE";
 }
 function sectors() {
@@ -141,7 +163,7 @@ function start(mode = "campaign", seed) {
   // A gesture starts audio, including when the first shot is scheduled later.
   cue("pickup");
   $("notice").textContent =
-    "Squad deployed. Drag to steer; cross crates to collect.";
+    "Squad deployed. Drag to steer. Shoot amplifiers to raise their value; break sealed crates before collecting.";
   hud();
 }
 function pause() {
@@ -175,7 +197,7 @@ function result() {
   pointer = null;
   panel(`<p class="eyebrow">${win ? "SECTOR SECURED" : best ? "NEW DISTANCE RECORD" : "SIGNAL LOST"}</p><h2>${win ? "Road cleared." : "Hold on.<br>Try again."}</h2>
     <p class="sub">${win ? (game.level === 9 ? "Ten sectors secured. The road home is open." : "Your scouts live to see another sunrise.") : "Recruit early. Upgrade your weapon.<br>Keep clear of marked lanes."}</p>
-    <div class="results"><div><strong>${game.score}</strong><span>SCORE</span></div><div><strong>${endless ? game.distance : game.kills}</strong><span>${endless ? "METERS" : "HOSTILES"}</span></div><div><strong>${endless ? game.bosses : game.squad}</strong><span>${endless ? "GUARDIANS" : "SCOUTS"}</span></div></div>
+    ${win && save.mastery[game.level] ? `<p class="small-copy">BEST ${save.mastery[game.level].survivors} SURVIVORS · ${save.mastery[game.level].time.toFixed(1)}s</p>` : ""}<div class="results"><div><strong>${game.score}</strong><span>SCORE</span></div><div><strong>${endless ? game.distance : game.kills}</strong><span>${endless ? "METERS" : "HOSTILES"}</span></div><div><strong>${endless ? game.bosses : game.squad}</strong><span>${endless ? "GUARDIANS" : "SCOUTS"}</span></div></div>
     ${win && game.level < 9 ? '<button class="primary" data-action="next">NEXT SECTOR →</button>' : endless ? '<button class="primary" data-action="endless">NEW EXPEDITION →</button>' : '<button class="primary" data-action="restart">DEPLOY AGAIN →</button>'}
     ${endless || (win && game.level < 9) ? '<button class="secondary" data-action="restart">Replay · same battlefield</button>' : ""}
     <button class="secondary" data-action="menu">Back to operations</button>`);
@@ -200,13 +222,15 @@ function hud() {
     Math.min(
       100,
       game.mode === "campaign"
-        ? (game.time / (LEVELS[game.level].duration - 6)) * 100
-        : ((game.time % 75) / 75) * 100,
+        ? game.boss
+          ? 100
+          : (game.time / (LEVELS[game.level].duration - 6)) * 100
+        : Math.max(0, 1 - (game.nextBoss - game.time) / 52) * 100,
     ) + "%";
   if (screen === "game")
     $("hint").textContent =
       game.time < 12
-        ? "CROSS CRATES TO RECRUIT & UPGRADE"
+        ? "SUPPLY: COLLECT · AMPLIFIER: SHOOT +1"
         : game.boss
           ? "DODGE THE MARKED LANE"
           : game.mode === "endless"
@@ -369,6 +393,9 @@ if (
     pause,
     resume,
     renderer,
+    select(level) {
+      selected = clamp(level, 0, 9);
+    },
     step(n = 1) {
       for (let i = 0; i < n; i++) game.step(1 / 60);
       renderer.draw(game);

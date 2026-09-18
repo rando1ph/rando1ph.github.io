@@ -8,7 +8,7 @@ const fs = require("fs");
     headless: true,
     executablePath: "/usr/bin/google-chrome",
   });
-  fs.mkdirSync("/tmp/frontline-qa", { recursive: true });
+  fs.mkdirSync("/tmp/frontline-v2-qa", { recursive: true });
   const errors = [],
     warnings = [],
     report = { viewports: [], tests: [] };
@@ -24,7 +24,7 @@ const fs = require("fs");
     if (m.type() === "error") errors.push(m.text());
     if (m.type() === "warning") warnings.push(m.text());
   });
-  const url = "http://localhost:8008/games/frontline/?qa=1";
+  const url = "http://127.0.0.1:8018/games/frontline/?qa=1";
   await page.goto(url);
   await page.getByRole("button", { name: "DEPLOY SQUAD" }).click();
   const initial = await page.evaluate(() => ({
@@ -209,7 +209,7 @@ const fs = require("fs");
     [430, 932],
   ]) {
     await page.setViewportSize({ width, height });
-    await page.screenshot({ path: `/tmp/frontline-qa/menu-${width}.png` });
+    await page.screenshot({ path: `/tmp/frontline-v2-qa/menu-${width}.png` });
     const layout = await page.evaluate(() => ({
       scroll: document.documentElement.scrollWidth,
       width: innerWidth,
@@ -252,7 +252,7 @@ const fs = require("fs");
       });
       q.step(12);
     });
-    await page.screenshot({ path: `/tmp/frontline-qa/battle-${width}.png` });
+    await page.screenshot({ path: `/tmp/frontline-v2-qa/battle-${width}.png` });
     await page.getByRole("button", { name: "Pause game" }).click();
     await page.getByRole("button", { name: "Back to operations" }).click();
   }
@@ -261,7 +261,7 @@ const fs = require("fs");
   });
   desktop.on("pageerror", (e) => errors.push(e.message));
   await desktop.goto(url);
-  await desktop.screenshot({ path: "/tmp/frontline-qa/desktop.png" });
+  await desktop.screenshot({ path: "/tmp/frontline-v2-qa/desktop.png" });
   await desktop.getByRole("button", { name: "DEPLOY SQUAD" }).click();
   const r = await desktop.locator("canvas").boundingBox();
   await desktop.mouse.move(r.x + r.width * 0.5, r.y + r.height * 0.8);
@@ -299,24 +299,15 @@ const fs = require("fs");
         ],
       });
     q.step(30);
-    const frames = [];
-    for (let i = 0; i < 240; i++) {
-      const t = performance.now();
-      q.renderer.draw(g);
-      frames.push(performance.now() - t);
-    }
-    frames.sort((a, b) => a - b);
     return {
       scouts: g.squad,
       visible: 30,
       enemies: g.enemies.length,
       bullets: g.bullets.length,
       particles: g.effects.length,
-      drawMedian: frames[120],
-      drawP95: frames[228],
     };
   });
-  await desktop.screenshot({ path: "/tmp/frontline-qa/stress.png" });
+  await desktop.screenshot({ path: "/tmp/frontline-v2-qa/stress.png" });
   await desktop.emulateMedia({ reducedMotion: "reduce" });
   await desktop.reload();
   assert.ok(await desktop.evaluate(() => frontlineQA.renderer.reduced));
@@ -324,7 +315,7 @@ const fs = require("fs");
   report.errors = errors;
   report.warnings = warnings;
   fs.writeFileSync(
-    "/tmp/frontline-qa/browser-results.json",
+    "/tmp/frontline-v2-qa/browser-results.json",
     JSON.stringify(report, null, 2),
   );
   console.log(JSON.stringify(report, null, 2));

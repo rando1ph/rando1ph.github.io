@@ -1,3 +1,13 @@
+# Frontline
+
+Current release: **V2**. See [V2 implementation and QA report](V2-REPORT.md) for current mechanics, comparison data, checks and known limits.
+
+Current local preview: **http://127.0.0.1:8018/games/frontline/**
+
+The original V1 report below is retained as historical baseline documentation; its tuning, ports and results describe V1.
+
+---
+
 # Frontline V1
 
 Original, dependency-free Canvas 2D arcade game for randolf.dev. No commercial art, textures, sounds, models, branding, framework, backend, analytics, or account system.

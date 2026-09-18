@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Core Shift — push Energy Cores into their docks, restore the ship's power, and launch. A Sokoban-style puzzle on randolf.dev.">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>Core Shift — Games · RANDOLF.DEV</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3 L20 12 L12 21 L4 12 Z' fill='%23c9f44d'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <link rel="stylesheet" href="core-shift.css">
+</head>
+<body>
+
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-noise" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="brand" href="../../">RANDOLF<span class="brand-dot">.</span></a>
+    <nav class="site-nav" aria-label="Primary">
+      <ul>
+        <li><a href="../../games/" aria-current="page">Games</a></li>
+        <li><a href="../../news/">News</a></li>
+        <li><a href="../../ai/">AI</a></li>
+        <li class="nav-clock"><span data-clock>--:--:-- GMT</span></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="page cs-page" id="top">
+    <div class="page-inner">
+
+      <p class="crumbs mono reveal">
+        <a href="../../"><span class="crumb-arr" aria-hidden="true">←</span> Home</a>
+        <span class="crumb-sep" aria-hidden="true">/</span>
+        <a href="../">Games</a>
+        <span class="crumb-sep" aria-hidden="true">/</span>
+        Core Shift
+      </p>
+
+      <header class="page-head reveal">
+        <p class="section-label mono">Game 008 · Core Shift <span aria-hidden="true">·</span> 核心归位</p>
+        <h1 class="page-title">Core Shift</h1>
+        <p class="page-lede">Restore the ship, one core at a time.</p>
+      </header>
+
+      <section class="block cs reveal">
+        <div class="cs-top">
+          <div class="cs-hud">
+            <div class="cs-stat">
+              <span class="mono">Power</span>
+              <strong class="mono" data-cs-power>0 / 0</strong>
+            </div>
+            <div class="cs-stat">
+              <span class="mono">Moves</span>
+              <strong class="mono" data-cs-moves>0</strong>
+            </div>
+            <div class="cs-stat">
+              <span class="mono">Pushes</span>
+              <strong class="mono" data-cs-pushes>0</strong>
+            </div>
+          </div>
+          <div class="cs-actions" role="group" aria-label="Game actions">
+            <button type="button" class="cs-btn" data-cs-undo disabled>Undo</button>
+            <button type="button" class="cs-btn" data-cs-restart>Restart</button>
+            <button type="button" class="cs-btn" data-cs-levels>Levels</button>
+            <button type="button" class="cs-btn" data-cs-sound aria-pressed="true">Sound</button>
+          </div>
+        </div>
+
+        <div class="cs-levelbar mono">
+          <span data-cs-level-num>01 / 16</span>
+          <span data-cs-level-name>Maintenance Bay</span>
+        </div>
+
+        <div class="cs-stage" data-cs-stage>
+          <div class="cs-stars" data-cs-stars aria-hidden="true"></div>
+
+          <div class="cs-ship" data-cs-ship>
+            <div class="cs-lights" data-cs-lights aria-hidden="true"></div>
+            <div class="cs-clip" data-cs-clip>
+              <div class="cs-boardwrap" data-cs-board>
+                <div class="cs-grid" data-cs-cells aria-hidden="true"></div>
+                <div class="cs-hints" data-cs-hints aria-hidden="true"></div>
+                <div class="cs-actors" data-cs-actors aria-hidden="true"></div>
+              </div>
+            </div>
+            <div class="cs-ambient" data-cs-ambient aria-hidden="true"></div>
+            <div class="cs-engine" data-cs-engine aria-hidden="true"></div>
+          </div>
+
+          <div class="cs-online mono" data-cs-online hidden>SYSTEM ONLINE</div>
+
+          <div class="cs-overlay" data-cs-overlay hidden>
+            <div class="cs-panel" data-cs-panel="result" hidden>
+              <p class="cs-panel-eyebrow mono" data-cs-result-eyebrow>Circuit restored</p>
+              <p class="cs-panel-title cs-cyan">Level Complete</p>
+              <p class="cs-panel-note mono" data-cs-result-note>Pushes 0</p>
+              <div class="cs-panel-actions">
+                <button type="button" class="cs-btn cs-btn-primary" data-cs-result-next>Next Level</button>
+                <button type="button" class="cs-btn" data-cs-result-replay>Replay</button>
+                <button type="button" class="cs-btn" data-cs-result-levels>Levels</button>
+                <button type="button" class="cs-btn" data-cs-result-x aria-label="Close">Close</button>
+              </div>
+            </div>
+
+            <div class="cs-panel" data-cs-panel="confirm" hidden>
+              <p class="cs-panel-eyebrow mono">Restart level?</p>
+              <p class="cs-panel-note mono">Current progress is lost</p>
+              <div class="cs-panel-actions">
+                <button type="button" class="cs-btn" data-cs-confirm-cancel>Cancel</button>
+                <button type="button" class="cs-btn cs-btn-primary" data-cs-confirm-ok>Restart</button>
+              </div>
+            </div>
+
+            <div class="cs-panel" data-cs-panel="levels" hidden>
+              <p class="cs-panel-eyebrow mono">Select subsystem</p>
+              <p class="cs-panel-title">Levels</p>
+              <div class="cs-lv-grid" data-cs-lv-grid></div>
+              <div class="cs-panel-actions">
+                <button type="button" class="cs-btn" data-cs-levels-close>Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cs-help">
+          <p class="para mono">Desktop — arrow keys / WASD move · Z undo · R restart. Mouse: tap the deck.</p>
+          <p class="para mono">Mobile — tap the deck to walk · tap a Core, then a highlighted cell to push · swipe for single steps.</p>
+          <p class="para mono">Dock every Energy Core to bring the ship fully online.</p>
+        </div>
+
+        <p class="sr-only" data-cs-live role="status" aria-live="polite"></p>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="mono">© <span data-year>2026</span> RANDOLF.DEV</div>
+    <div class="mono">Built by hand — HTML · CSS · JS</div>
+    <div class="mono" data-clock>--:--:-- GMT</div>
+  </footer>
+
+  <script src="../../assets/js/main.js"></script>
+  <script src="../../assets/js/game-audio.js"></script>
+  <script src="engine.js"></script>
+  <script src="levels.js"></script>
+  <script src="core-shift.js"></script>
+</body>
+</html>

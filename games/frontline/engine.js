@@ -30,6 +30,28 @@ export function formation(count) {
   formations.set(count, points);
   return points;
 }
+// Segment/rectangle entry time: every projectile resolves its nearest physical hit.
+// This also handles fast diagonal Trident shots crossing more than one target per step.
+export function segmentHit(x0, y0, x1, y1, x, y, rx, ry) {
+  let near = 0,
+    far = 1;
+  for (const [start, delta, min, max] of [
+    [x0, x1 - x0, x - rx, x + rx],
+    [y0, y1 - y0, y - ry, y + ry],
+  ]) {
+    if (Math.abs(delta) < 1e-8) {
+      if (start < min || start > max) return Infinity;
+      continue;
+    }
+    let a = (min - start) / delta,
+      b = (max - start) / delta;
+    if (a > b) [a, b] = [b, a];
+    near = Math.max(near, a);
+    far = Math.min(far, b);
+    if (near > far) return Infinity;
+  }
+  return near;
+}
 export class Game {
   constructor({
     seed = 1,
@@ -70,9 +92,24 @@ export class Game {
     this.boss = null;
     this.schedule = mode === "campaign" ? campaign(seed, level) : [];
     this.bossStarted = false;
-    this.nextBoss = 75;
+    this.nextBoss = 52;
+    this.bossPending = false;
+    this.banner = null;
+    this.taught = [];
     this.rescue = 0;
-    this.stats = { shots: 0, hits: 0, collected: 0, lost: 0 };
+    this.stats = {
+      shots: 0,
+      hits: 0,
+      collected: 0,
+      lost: 0,
+      panelHits: 0,
+      panelGain: 0,
+      cratesBroken: 0,
+      crateCollisions: 0,
+      hordes: 0,
+      enemyEscapes: 0,
+      bossArrivals: [],
+    };
   }
   say(text, x = this.x, y = 585, color = "#b0f6ff") {
     this.texts.push({ text, x, y, color, life: 1.5 });
@@ -93,15 +130,43 @@ export class Game {
       });
     }
   }
+  announce(text, detail, kind = "horde") {
+    this.banner = { text, detail, kind, life: 2.2 };
+    this.emit(kind === "horde" ? "horde" : "warning");
+  }
+  contact(x, y, rx = 10, ry = 10) {
+    return formation(this.squad).some(
+      (p) =>
+        Math.abs(this.x + p.x - x) < rx + 9 &&
+        Math.abs(649 + p.y - y) < ry + 12,
+    );
+  }
   spawn(block) {
+    for (const [kind, title, detail] of [
+      ["amplifier", "AMPLIFIER", "Shoot +1 per hit · cross to claim"],
+      ["crate", "SEALED UPGRADE", "Break it first · unopened crates hurt"],
+    ]) {
+      if (
+        !this.taught.includes(kind) &&
+        block.items.some((p) => (kind === "crate" ? p.crated : p.kind === kind))
+      ) {
+        this.taught.push(kind);
+        this.announce(title, detail, "lesson");
+      }
+    }
+    if (block.tags?.includes("horde")) {
+      this.stats.hordes++;
+      this.announce("HORDE INBOUND", "Choose a firing line");
+    }
     block.items.forEach((item) => {
       const d = ENEMIES[item.kind];
       if (d)
         this.enemies.push({
           ...item,
           ...d,
-          hp: d.hp * item.scale,
-          maxHp: d.hp * item.scale,
+          hp: d.hp * (item.scale ?? 1),
+          maxHp: d.hp * (item.scale ?? 1),
+          speed: d.speed * (item.speedScale ?? 1),
           phase: this.rng() * 6.28,
           baseX: item.x,
           age: 0,
@@ -114,12 +179,45 @@ export class Game {
               (e) => Math.abs(e.baseX - item.x) < 25 && e.hp > 0,
             )
           : null;
-        this.pickups.push({ ...item, age: 0, guard });
+        const crated =
+          item.crated === true &&
+          ["weapon", "damage", "rapid"].includes(item.kind);
+        this.pickups.push({
+          ...item,
+          age: 0,
+          guard,
+          speed: item.speed ?? 82,
+          hit: 0,
+          type:
+            item.kind === "amplifier"
+              ? "panel"
+              : crated
+                ? "crate"
+                : ["weapon", "damage", "rapid"].includes(item.kind)
+                  ? "drop"
+                  : "supply",
+          hp: crated ? (item.hp ?? 18) : 0,
+          maxHp: crated ? (item.hp ?? 18) : 0,
+          minValue: item.minValue ?? -16,
+          maxValue: item.maxValue ?? 10,
+          tint: item.value < 0 ? -1 : item.value > 0 ? 1 : 0,
+        });
       }
     });
     this.wave++;
   }
+  prepareBoss() {
+    this.bossPending = true;
+    this.bossReadyAt = this.time + (this.mode === "campaign" ? 3 : 7);
+    this.announce(
+      "GUARDIAN INBOUND",
+      "Clear the road · take the supplies",
+      "boss",
+    );
+  }
   spawnBoss() {
+    this.bossPending = false;
+    this.stats.bossArrivals.push(this.time);
     const kind =
       this.mode === "campaign"
         ? LEVELS[this.level].boss
@@ -127,7 +225,9 @@ export class Game {
           ? "maw"
           : "warden";
     const hp =
-      this.mode === "endless" ? 650 + this.bosses * 650 : 460 + this.level * 48;
+      this.mode === "endless"
+        ? 700 + Math.min(2400, this.bosses * 320)
+        : 600 + this.level * 145;
     this.boss = {
       kind,
       x: 210,
@@ -152,7 +252,26 @@ export class Game {
     );
   }
   collect(p) {
+    if (p.type === "crate" && p.hp > 0) {
+      this.stats.crateCollisions++;
+      this.hurt(Math.max(1, Math.ceil((p.hp / p.maxHp) * 3)), p.x, true);
+      this.say("CRATE IMPACT", p.x, 570, "#ffb39c");
+      return;
+    }
     this.stats.collected++;
+    if (p.kind === "amplifier") {
+      const value = clamp(p.value, p.minValue ?? -16, p.maxValue ?? 10);
+      if (value < 0) this.hurt(-value, p.x, true);
+      else {
+        const gain = Math.min(60 - this.squad, value);
+        this.squad += gain;
+        this.stats.panelGain += gain;
+        this.say(`+${gain} SCOUTS`);
+        this.emit(gain ? "growth" : "pickup");
+      }
+      this.burst(p.x, p.y, value < 0 ? "#ff849b" : "#63ebff", 8);
+      return;
+    }
     if (p.kind === "squad") {
       const old = this.squad;
       this.squad = Math.min(60, this.squad + p.value);
@@ -181,8 +300,9 @@ export class Game {
     }
     this.burst(p.x, p.y, p.kind === "weapon" ? "#ffcf71" : "#63ebff", 15);
   }
-  hurt(amount, x = this.x) {
-    if (this.invulnerable > 0 || this.state !== "playing") return;
+  hurt(amount, x = this.x, resource = false) {
+    if ((!resource && this.invulnerable > 0) || this.state !== "playing")
+      return;
     const lost = Math.min(this.squad, amount);
     this.squad -= lost;
     this.stats.lost += lost;
@@ -205,9 +325,39 @@ export class Game {
       this.time,
     );
     this.spawn(block);
-    this.nextEndless = this.time + Math.max(4.6, 7 - block.band * 0.22);
+    this.nextEndless =
+      this.time +
+      block.pace.interval +
+      (block.tags.includes("horde") ? 1.0 : 0);
+  }
+  hitResource(p, b) {
+    p.hit = 0.11;
+    this.stats.hits++;
+    if (p.type === "panel") {
+      const old = p.value;
+      p.value = Math.min(p.maxValue, p.value + 1);
+      this.stats.panelHits++;
+      if (old === 0 && p.value === 1) {
+        this.emit("panelPositive");
+        this.burst(p.x, p.y, "#8bf2ff", 5);
+      } else if (p.value !== old) this.emit("panelHit");
+    } else {
+      p.hp = Math.max(0, p.hp - b.damage);
+      this.emit("crateHit");
+      if (p.hp === 0) {
+        p.type = "drop";
+        p.released = 0.25;
+        this.stats.cratesBroken++;
+        this.burst(p.x, p.y, "#ffd58d", 12);
+        this.emit("crateBreak");
+      }
+    }
   }
   animateEffects(dt) {
+    if (this.banner) {
+      this.banner.life -= dt;
+      if (this.banner.life <= 0) this.banner = null;
+    }
     for (const p of this.effects) {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
@@ -243,11 +393,33 @@ export class Game {
         this.time >= this.schedule[this.next].at
       )
         this.spawn(this.schedule[this.next++]);
-      if (!this.bossStarted && this.time >= LEVELS[this.level].duration - 6)
+      const finale = Math.min(
+        LEVELS[this.level].duration - 5,
+        (this.schedule.at(-1)?.at ?? 0) + 8,
+      );
+      if (!this.bossStarted && !this.bossPending && this.time >= finale)
+        this.prepareBoss();
+      if (
+        this.bossPending &&
+        this.time >= this.bossReadyAt &&
+        this.enemies.length === 0 &&
+        this.hostile.length === 0
+      )
         this.spawnBoss();
     } else if (!this.boss) {
-      if (this.time >= this.nextBoss) this.spawnBoss();
-      else if (this.time >= this.nextEndless) this.endlessBlock();
+      // Stop normal blocks for a horde -> supplies -> warning -> boss transition.
+      if (!this.bossPending && this.time >= this.nextBoss - 7) {
+        this.spawn(encounter("recovery", this.rng() * 4294967296));
+        this.prepareBoss();
+      }
+      if (this.bossPending) {
+        if (
+          this.time >= this.nextBoss &&
+          this.enemies.length === 0 &&
+          this.hostile.length === 0
+        )
+          this.spawnBoss();
+      } else if (this.time >= this.nextEndless) this.endlessBlock();
     }
     if (this.boss && this.time >= this.rescue) {
       this.pickups.push({
@@ -256,6 +428,7 @@ export class Game {
         x: LANES[Math.floor(this.rng() * 3)],
         y: 240,
         age: 0,
+        type: this.weapon < 2 && this.boss.age > 18 ? "drop" : "supply",
       });
       this.rescue = this.time + 12;
     }
@@ -297,17 +470,25 @@ export class Game {
           this.burst(e.x, e.y, "#f677ce", 5);
         }
       }
-      if (e.y > 628) {
-        this.hurt(Math.abs(e.x - this.x) < e.radius + 30 ? e.hurt : 1, e.x);
+      if (this.contact(e.x, e.y, e.radius * 0.82, e.radius * 0.8)) {
+        this.hurt(e.hurt, e.x);
         e.hp = 0;
         e.escaped = true;
+      } else if (e.y > 735) {
+        e.hp = 0;
+        e.escaped = true;
+        this.stats.enemyEscapes++;
+        if (this.invulnerable <= 0) {
+          this.hurt(1, e.x);
+          this.say("BREACH", e.x, 705, "#ff98aa");
+        }
       }
     }
     const boss = this.boss;
     if (boss) {
       boss.age += dt;
       boss.hit = Math.max(0, boss.hit - dt);
-      boss.y = Math.min(167, boss.y + 44 * dt);
+      boss.y = Math.min(167, boss.y + 62 * dt);
       boss.x =
         210 + Math.sin(boss.age * 0.65) * (boss.kind === "maw" ? 92 : 65);
       if (boss.y >= 167) {
@@ -321,8 +502,8 @@ export class Game {
                 {
                   kind: this.bosses >= 4 ? "elite" : "runner",
                   x,
-                  y: 220,
-                  scale: 1 + this.bosses * 0.12,
+                  y: -30,
+                  scale: 1 + Math.min(0.5, this.bosses * 0.06),
                 },
               ],
             });
@@ -344,7 +525,14 @@ export class Game {
           a.t += dt;
           if (a.t > 1.35 && !a.hit) {
             a.hit = true;
-            if (a.lanes.some((l) => Math.abs(l - this.x) < 45)) this.hurt(3);
+            if (
+              a.lanes.some((l) =>
+                formation(this.squad).some(
+                  (p) => Math.abs(l - this.x - p.x) < 44 + 8,
+                ),
+              )
+            )
+              this.hurt(3);
             this.shake = 3;
             this.emit("impact");
           }
@@ -356,38 +544,51 @@ export class Game {
       }
     }
     for (const b of this.bullets) {
-      const oldY = b.y;
+      const ox = b.x,
+        oy = b.y;
       b.x += b.vx * dt;
       b.y += b.vy * dt;
-      let target = null;
-      // Swept vertical collision prevents fast projectiles skipping small enemies.
-      for (const e of this.enemies)
-        if (
-          e.hp > 0 &&
-          Math.abs(e.x - b.x) < e.radius + 3 &&
-          b.y < e.y + e.radius &&
-          oldY > e.y - e.radius
-        ) {
+      let target = null,
+        first = Infinity,
+        resource = false;
+      const check = (e, rx, ry, isResource) => {
+        // Offscreen targets cannot absorb bullets or be farmed before arrival.
+        if (e.y < 55 || e.y > 760) return;
+        const t = segmentHit(ox, oy, b.x, b.y, e.x, e.y, rx, ry);
+        if (t < first) {
+          first = t;
           target = e;
-          break;
+          resource = isResource;
         }
-      if (
-        !target &&
-        boss &&
-        boss.y >= 167 &&
-        Math.abs(b.x - boss.x) < boss.radius &&
-        b.y < boss.y + 55 &&
-        oldY > boss.y - 52
-      )
-        target = boss;
+      };
+      for (const e of this.enemies)
+        if (e.hp > 0) check(e, e.radius * 0.85 + 2, e.radius * 0.85, false);
+      for (const p of this.pickups)
+        if (!p.done && (p.type === "panel" || (p.type === "crate" && p.hp > 0)))
+          check(
+            p,
+            p.type === "panel" ? 42 : 32,
+            p.type === "panel" ? 25 : 28,
+            true,
+          );
+      if (boss && boss.y >= 167 && boss.hp > 0)
+        check(boss, boss.radius, 55, false);
       if (target) {
-        target.hp -= b.damage;
-        target.hit = 0.075;
+        if (resource) this.hitResource(target, b);
+        else {
+          target.hp -= b.damage;
+          target.hit = 0.075;
+          this.stats.hits++;
+          this.emit("hit");
+          if (this.effects.length < 95)
+            this.burst(
+              ox + (b.x - ox) * first,
+              oy + (b.y - oy) * first,
+              "#ffc982",
+              2,
+            );
+        }
         b.y = -100;
-        this.stats.hits++;
-        this.emit("hit");
-        if (this.effects.length < 100)
-          this.burst(b.x, Math.max(b.y, target.y + 10), "#ffc982", 2);
       }
     }
     this.bullets = this.bullets.filter(
@@ -411,25 +612,39 @@ export class Game {
       this.emit("bossDeath");
       if (this.mode === "campaign") this.finish(true);
       else {
-        this.nextBoss = this.time + 70;
+        this.nextBoss = this.time + 43;
         this.nextEndless = this.time + 3;
         this.squad = Math.min(60, this.squad + 4);
       }
     }
     for (const p of this.pickups) {
       p.age += dt;
+      p.hit = Math.max(0, (p.hit || 0) - dt);
       p.locked = !!(p.guard && p.guard.hp > 0);
-      p.y += (p.locked ? p.guard.speed : 66) * dt;
-      if (p.y >= 635 && !p.done) {
+      if (p.type === "panel")
+        p.tint += (Math.sign(p.value) - p.tint) * (1 - Math.exp(-14 * dt));
+      if (p.released > 0) p.released -= dt;
+      else p.y += (p.locked ? p.guard.speed : (p.speed ?? 82)) * dt;
+      // The same rendered scout footprint touches good and dangerous objects.
+      if (!p.done && p.y >= 635) {
         p.done = true;
-        if (Math.abs(p.x - this.x) < 47) this.collect(p);
+        if (
+          this.contact(
+            p.x,
+            649,
+            p.type === "panel" ? 42 : p.type === "drop" ? 19 : 32,
+            22,
+          )
+        )
+          this.collect(p);
       }
+      if (p.y > H + 45) p.done = true;
     }
-    this.pickups = this.pickups.filter((p) => !p.done && p.y < 710);
+    this.pickups = this.pickups.filter((p) => !p.done);
     for (const h of this.hostile) {
       h.x += h.vx * dt;
       h.y += h.vy * dt;
-      if (h.y > 626 && h.y < 710 && Math.abs(h.x - this.x) < 30) {
+      if (this.contact(h.x, h.y, h.r, h.r)) {
         this.hurt(2, h.x);
         h.y = 900;
       }
