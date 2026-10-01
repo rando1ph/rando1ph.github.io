@@ -1,854 +1,45 @@
 /* ------------------------------------------------------------------
-   Core Shift — randolf.dev game styles.
-   Board: CSS Grid + inline SVG actors. Palette follows the site shell
-   (--bg/--fg/--accent) plus the in-fiction power colors:
-   amber = offline / emergency, cyan = restored power.
+   Core Shift — randolf.dev game styles
+   Industrial spacecraft maintenance bay. The page shell (typography,
+   header, footer, buttons' shape language) comes from style.css; this
+   file owns the bay itself.
+
+   Colour rule for this game: the site's lime stays the interface
+   colour, cyan belongs to power and only to power.
    ------------------------------------------------------------------ */
 
-.cs-page .page-inner {
-  max-width: 860px;
-}
-
-.cs-top {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.cs-hud {
-  display: flex;
-  gap: 18px;
-  flex-wrap: wrap;
-}
-
-.cs-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.cs-stat span {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.cs-stat strong {
-  font-family: var(--mono);
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--fg);
-  font-variant-numeric: tabular-nums;
-}
-
-.cs-stat strong.cs-power-full {
-  color: var(--cs-cyan, #59d8e6);
-}
-
-.cs-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.cs-btn {
-  appearance: none;
-  background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  color: var(--fg);
-  font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  padding: 7px 13px;
-  cursor: pointer;
-  transition: border-color 0.2s var(--ease), color 0.2s var(--ease),
-    background 0.2s var(--ease);
-  -webkit-tap-highlight-color: transparent;
-}
-
-.cs-btn:hover:not(:disabled),
-.cs-btn:focus-visible {
-  border-color: var(--accent);
-  color: var(--accent);
-  outline: none;
-}
-
-.cs-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.cs-btn.cs-btn-primary {
-  border-color: var(--accent);
-  color: var(--accent-ink);
-  background: var(--accent);
-}
-
-.cs-btn.cs-btn-primary:hover:not(:disabled),
-.cs-btn.cs-btn-primary:focus-visible {
-  color: var(--accent-ink);
-  filter: brightness(1.08);
-}
-
-.cs-btn[aria-pressed="false"] {
-  color: var(--muted);
-}
-
-/* --- level bar ----------------------------------------------------- */
-
-.cs-levelbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-  padding: 0 2px 8px;
-}
-
-.cs-levelbar [data-cs-level-name] {
-  color: var(--fg);
-  text-align: right;
-}
-
-/* --- stage / ship --------------------------------------------------- */
-
-:root {
-  --cs-cyan: #59d8e6;
-  --cs-cyan-bright: #a5f0f8;
-  --cs-cyan-dim: rgba(89, 216, 230, 0.34);
-  --cs-amber: #e8a33d;
-  --cs-amber-dim: rgba(232, 163, 61, 0.16);
-  --cs-floor: #121419;
-  --cs-floor-2: #15181d;
-  --cs-wall: #23272e;
-  --cs-wall-hi: #31363f;
-  --cs-wall-lo: #101216;
-}
-
-.cs-stage {
-  position: relative;
+.cs {
+  max-width: 40rem;
   margin: 0 auto;
-  width: 100%;
-  max-width: 560px;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
+  /* the bay wants the room more than the section wants its breathing space */
+  padding-top: clamp(1.25rem, 2.5vw, 2rem);
 }
 
-.cs-ship {
-  position: relative;
-  padding: 12px;
-  border-radius: 10px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)) ,
-    var(--bg-2);
-  border: 1px solid var(--line);
-  transition: box-shadow 0.8s var(--ease), border-color 0.8s var(--ease);
+.cs-page {
+  padding-top: clamp(4.75rem, 8vh, 6rem);
 }
 
-.cs-ship.cs-ship-full {
-  border-color: rgba(89, 216, 230, 0.4);
-  box-shadow:
-    0 0 22px rgba(89, 216, 230, 0.12),
-    inset 0 0 30px rgba(89, 216, 230, 0.05);
+.cs-page .page-head {
+  margin-bottom: clamp(0.9rem, 2vw, 1.5rem);
 }
 
-/* board sits in a clipping box so glows don't bleed onto the page */
-.cs-clip {
-  position: relative;
-  border-radius: 6px;
-  overflow: hidden;
-  touch-action: none;
-  cursor: pointer;
+.cs-page .page-title {
+  margin: 0.35rem 0 0.6rem;
+  font-size: clamp(2rem, 5vw, 3.2rem);
 }
 
-.cs-boardwrap {
-  position: relative;
+.cs-page .page-lede {
+  font-size: clamp(0.98rem, 1.5vw, 1.1rem);
 }
 
-.cs-grid {
-  display: grid;
-  grid-template-columns: repeat(var(--cols, 7), 1fr);
-  width: 100%;
-  aspect-ratio: var(--cols, 7) / var(--rows, 7);
-  background: var(--cs-floor);
-}
-
-/* --- cells ----------------------------------------------------------- */
-
-.cs-cell {
-  position: relative;
-}
-
-.cs-cell.c-floor {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.022), rgba(0, 0, 0, 0.12)),
-    var(--cs-floor);
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.38),
-    inset 1px 1px 0 0 rgba(255, 255, 255, 0.028);
-}
-
-/* alternating panel tint keeps the grid readable without noise */
-.cs-cell.c-floor.cs-alt {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.14)),
-    var(--cs-floor-2);
-}
-
-.cs-cell.c-floor::after {
-  /* single panel seam dot, subtle */
-  content: "";
-  position: absolute;
-  right: 12%;
-  bottom: 12%;
-  width: 2px;
-  height: 2px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.cs-cell.c-wall {
-  background:
-    linear-gradient(180deg, var(--cs-wall-hi) 0%, var(--cs-wall) 38%, var(--cs-wall-lo) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    inset 0 -2px 3px rgba(0, 0, 0, 0.55),
-    inset 1px 0 0 rgba(255, 255, 255, 0.04);
-}
-
-.cs-cell.c-wall.cs-edge {
-  background:
-    linear-gradient(180deg, #2b3039 0%, #22262d 40%, #0d0f12 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -3px 6px rgba(0, 0, 0, 0.6);
-}
-
-/* riveted detail on some structural cells (deterministic pattern) */
-.cs-cell.c-wall.cs-rivet::before {
-  content: "";
-  position: absolute;
-  inset: 22%;
-  border-radius: 2px;
-  background:
-    radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.12) 1px, transparent 1.6px),
-    radial-gradient(circle at 75% 25%, rgba(255, 255, 255, 0.12) 1px, transparent 1.6px),
-    radial-gradient(circle at 25% 75%, rgba(255, 255, 255, 0.1) 1px, transparent 1.6px),
-    radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.1) 1px, transparent 1.6px);
-  opacity: 0.8;
-}
-
-/* --- dock ------------------------------------------------------------ */
-
-.cs-cell .cs-dock {
-  position: absolute;
-  inset: 12%;
-  pointer-events: none;
-}
-
-.cs-cell .cs-dock::before {
-  /* corner brackets */
-  content: "";
-  position: absolute;
-  inset: 0;
-  border: 1px solid rgba(89, 216, 230, 0.34);
-  -webkit-mask:
-    linear-gradient(#fff 0 0) top left / 34% 34% no-repeat,
-    linear-gradient(#fff 0 0) top right / 34% 34% no-repeat,
-    linear-gradient(#fff 0 0) bottom left / 34% 34% no-repeat,
-    linear-gradient(#fff 0 0) bottom right / 34% 34% no-repeat;
-  mask:
-    linear-gradient(#fff 0 0) top left / 34% 34% no-repeat,
-    linear-gradient(#fff 0 0) top right / 34% 34% no-repeat,
-    linear-gradient(#fff 0 0) bottom left / 34% 34% no-repeat,
-    linear-gradient(#fff 0 0) bottom right / 34% 34% no-repeat;
-}
-
-.cs-cell .cs-dock::after {
-  /* contact plate */
-  content: "";
-  position: absolute;
-  inset: 22%;
-  border-radius: 3px;
-  background:
-    linear-gradient(180deg, rgba(89, 216, 230, 0.07), rgba(89, 216, 230, 0.02));
-  box-shadow:
-    inset 0 0 0 1px rgba(89, 216, 230, 0.16),
-    inset 0 0 8px rgba(89, 216, 230, 0.07);
-  animation: cs-dock-pulse 2.8s ease-in-out infinite;
-}
-
-@keyframes cs-dock-pulse {
-  0%, 100% { box-shadow: inset 0 0 0 1px rgba(89, 216, 230, 0.14), inset 0 0 6px rgba(89, 216, 230, 0.05); }
-  50% { box-shadow: inset 0 0 0 1px rgba(89, 216, 230, 0.34), inset 0 0 12px rgba(89, 216, 230, 0.16); }
-}
-
-.cs-cell.c-powered .cs-dock::after {
-  background:
-    linear-gradient(180deg, rgba(89, 216, 230, 0.3), rgba(89, 216, 230, 0.12));
-  box-shadow:
-    inset 0 0 0 1px rgba(89, 216, 230, 0.65),
-    0 0 14px rgba(89, 216, 230, 0.35);
-  animation: none;
-}
-
-/* one-shot energy pulse when a core docks */
-.cs-cell.cs-dock-flash::before {
-  content: "";
-  position: absolute;
-  inset: 4%;
-  border-radius: 4px;
-  border: 2px solid var(--cs-cyan-bright);
-  opacity: 0.9;
-  animation: cs-flash 0.55s var(--ease) forwards;
-  pointer-events: none;
-}
-
-@keyframes cs-flash {
-  from { transform: scale(0.72); opacity: 0.9; }
-  to { transform: scale(1.25); opacity: 0; }
-}
-
-/* --- actors ----------------------------------------------------------- */
-
-.cs-actors {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.cs-actor {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: calc(100% / var(--cols, 7));
-  height: calc(100% / var(--rows, 7));
-  transform: translate(0, 0);
-  will-change: transform;
-}
-
-.cs-actor.cs-core {
-  transition: transform 150ms cubic-bezier(0.3, 0.9, 0.4, 1.1);
-}
-
-.cs-actor.cs-robot {
-  transition: transform 105ms cubic-bezier(0.25, 0.8, 0.3, 1);
-  z-index: 3;
-}
-
-.cs-actor .cs-inner {
-  position: absolute;
-  inset: 7%;
-  transition: transform 90ms var(--ease);
-}
-
-.cs-robot .cs-inner {
-  animation: cs-bob 3.4s ease-in-out infinite;
-}
-
-@keyframes cs-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3.5%); }
-}
-
-.cs-actor .cs-inner.cs-lean {
-  transform: translateY(4%) scaleY(0.94);
-}
-
-.cs-actor .cs-inner.cs-bump {
-  animation: cs-bump 0.18s var(--ease);
-}
-
-@keyframes cs-bump {
-  0% { transform: translate(0, 0); }
-  40% { transform: translate(calc(var(--bump-x, 0) * 12%), calc(var(--bump-y, 0) * 12%)); }
-  100% { transform: translate(0, 0); }
-}
-
-/* robot SVG bits */
-.cs-robot-eyes {
-  animation: cs-eye-glow 4s ease-in-out infinite;
-}
-
-@keyframes cs-eye-glow {
-  0%, 100% { opacity: 0.85; }
-  50% { opacity: 1; }
-}
-
-.cs-robot .cs-inner.cs-blink .cs-robot-eyes {
-  animation: cs-blink-eyes 0.32s steps(2, jump-none) 1;
-}
-
-@keyframes cs-blink-eyes {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.15; }
-}
-
-/* --- energy core ------------------------------------------------------- */
-
-.cs-core .cs-inner {
-  border-radius: 16%;
-  background:
-    linear-gradient(160deg, #e6eaee 0%, #b9c1c9 45%, #8d959e 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.35),
-    0 2px 6px rgba(0, 0, 0, 0.5);
-  display: grid;
-  place-items: center;
-}
-
-.cs-core .cs-core-gem {
-  width: 52%;
-  height: 52%;
-  border-radius: 12%;
-  background:
-    conic-gradient(
-      from 45deg,
-      rgba(89, 216, 230, 0.9) 0 12%,
-      transparent 12% 38%,
-      rgba(89, 216, 230, 0.9) 38% 50%,
-      transparent 50% 88%,
-      rgba(89, 216, 230, 0.9) 88% 100%
-    ),
-    rgba(10, 20, 24, 0.9);
-  box-shadow:
-    inset 0 0 6px rgba(89, 216, 230, 0.5),
-    0 0 8px rgba(89, 216, 230, 0.25);
-}
-
-/* cross via pseudo elements */
-.cs-core .cs-core-gem::before,
-.cs-core .cs-core-gem::after {
-  content: "";
-  position: absolute;
-  background: var(--cs-cyan);
-  box-shadow: 0 0 6px rgba(89, 216, 230, 0.8);
-}
-
-.cs-core .cs-core-gem::before {
-  width: 14%;
-  height: 84%;
-  left: 43%;
-  top: 8%;
-}
-
-.cs-core .cs-core-gem::after {
-  width: 84%;
-  height: 14%;
-  left: 8%;
-  top: 43%;
-}
-
-.cs-core.cs-docked .cs-inner {
-  background:
-    linear-gradient(160deg, #dcecf0 0%, #9fb8c2 45%, #6d8894 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.35),
-    0 0 14px rgba(89, 216, 230, 0.45),
-    0 2px 6px rgba(0, 0, 0, 0.5);
-}
-
-.cs-core.cs-docked .cs-core-gem {
-  box-shadow:
-    inset 0 0 8px rgba(89, 216, 230, 0.9),
-    0 0 14px rgba(89, 216, 230, 0.55);
-}
-
-/* deadlock warning */
-.cs-core.cs-trapped .cs-inner {
-  animation: cs-trap 0.45s ease-in-out 2;
-}
-
-@keyframes cs-trap {
-  0%, 100% { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); }
-  50% {
-    box-shadow:
-      0 0 0 2px var(--cs-amber),
-      0 0 16px rgba(232, 163, 61, 0.65);
-  }
-}
-
-.cs-core.cs-trapped .cs-core-gem {
-  animation: cs-trap-gem 0.45s ease-in-out 2;
-}
-
-@keyframes cs-trap-gem {
-  0%, 100% { filter: none; }
-  50% { filter: hue-rotate(140deg) saturate(1.4); }
-}
-
-/* --- perimeter light circuits ------------------------------------------ */
-
-.cs-lights {
-  position: absolute;
-  inset: 5px;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.cs-seg {
-  position: absolute;
-  border-radius: 3px;
-  background: var(--cs-amber-dim);
-  box-shadow: inset 0 0 2px rgba(232, 163, 61, 0.25);
-  transition: background 0.5s var(--ease), box-shadow 0.5s var(--ease);
-}
-
-.cs-seg.cs-lit {
-  background: var(--cs-cyan);
-  box-shadow:
-    0 0 10px rgba(89, 216, 230, 0.65),
-    0 0 22px rgba(89, 216, 230, 0.28);
-}
-
-.cs-seg.cs-surge {
-  animation: cs-surge 0.7s var(--ease) 1;
-}
-
-@keyframes cs-surge {
-  0% { transform: scale(1); }
-  35% { transform: scaleY(2.1); filter: brightness(1.8); }
-  100% { transform: scale(1); }
-}
-
-/* --- ambient cabin light ------------------------------------------------ */
-
-.cs-ambient {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    120% 90% at 50% 30%,
-    rgba(89, 216, 230, 0.1),
-    rgba(89, 216, 230, 0.035) 55%,
-    transparent 80%
-  );
-  opacity: 0;
-  transition: opacity 1s var(--ease);
-  z-index: 1;
-}
-
-/* --- floor conduits (energize on full power) ----------------------------- */
-
-.cs-ship.cs-ship-full .cs-cell.c-floor::after {
-  background: rgba(89, 216, 230, 0.55);
-  box-shadow: 0 0 5px rgba(89, 216, 230, 0.8);
-}
-
-/* --- starfield / launch --------------------------------------------------- */
-
-.cs-stars {
-  position: absolute;
-  inset: -40px;
-  pointer-events: none;
-  overflow: hidden;
-  opacity: 0;
-  transition: opacity 0.4s ease;
-  z-index: 0;
-}
-
-.cs-star {
-  position: absolute;
-  width: 2px;
-  height: 2px;
-  border-radius: 50%;
-  background: #cfe6ee;
-  opacity: 0;
-}
-
-.cs-stage.cs-launching .cs-stars {
-  opacity: 1;
-}
-
-.cs-stage.cs-launching .cs-star {
-  animation: cs-streak 0.9s linear infinite;
-}
-
-@keyframes cs-streak {
-  0% { transform: translateY(-6vh) scaleY(1); opacity: 0; }
-  15% { opacity: 0.9; }
-  100% { transform: translateY(58vh) scaleY(9); opacity: 0; }
-}
-
-.cs-stage.cs-launching .cs-ship {
-  animation: cs-shake 0.32s linear infinite;
-}
-
-@keyframes cs-shake {
-  0%, 100% { transform: translate(0, 0); }
-  25% { transform: translate(-1px, 1px); }
-  50% { transform: translate(1px, -0.5px); }
-  75% { transform: translate(-0.5px, -1px); }
-}
-
-.cs-engine {
-  position: absolute;
-  left: 20%;
-  right: 20%;
-  bottom: -14px;
-  height: 12px;
-  border-radius: 50%;
-  background: radial-gradient(50% 100% at 50% 0%, rgba(165, 240, 248, 0.9), rgba(89, 216, 230, 0.35) 60%, transparent);
-  filter: blur(3px);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.cs-stage.cs-launching .cs-engine {
-  opacity: 1;
-  animation: cs-engine 1.6s ease-in forwards;
-}
-
-@keyframes cs-engine {
-  0% { transform: scaleX(0.4); opacity: 0.4; }
-  60% { transform: scaleX(1.15); opacity: 1; }
-  100% { transform: scaleX(1.3); opacity: 0.9; }
-}
-
-/* --- SYSTEM ONLINE --------------------------------------------------------- */
-
-.cs-online {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  text-align: center;
-  font-size: clamp(20px, 6vw, 34px);
+.cs-title-alt {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: clamp(0.75rem, 1.6vw, 0.95rem);
+  font-weight: 500;
   letter-spacing: 0.3em;
-  color: var(--cs-cyan-bright);
-  text-shadow: 0 0 18px rgba(89, 216, 230, 0.8);
-  pointer-events: none;
-  z-index: 5;
-  opacity: 0;
-}
-
-.cs-online.cs-show {
-  animation: cs-online-in 1.4s var(--ease) forwards;
-}
-
-@keyframes cs-online-in {
-  0% { opacity: 0; letter-spacing: 0.55em; }
-  30% { opacity: 1; }
-  100% { opacity: 1; letter-spacing: 0.3em; }
-}
-
-/* --- overlay panels ---------------------------------------------------------- */
-
-.cs-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 8;
-  display: grid;
-  place-items: center;
-  background: rgba(6, 7, 9, 0.72);
-  backdrop-filter: blur(2px);
-  border-radius: 10px;
-  padding: 14px;
-}
-
-.cs-overlay[hidden] {
-  display: none;
-}
-
-.cs-panel {
-  width: 100%;
-  max-width: 340px;
-  max-height: 100%;
-  overflow: auto;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 18px 18px 16px;
-  text-align: center;
-}
-
-.cs-panel-eyebrow {
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: 0 0 6px;
-}
-
-.cs-panel-title {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  margin: 0 0 6px;
-  color: var(--fg);
-}
-
-.cs-panel-title.cs-cyan {
-  color: var(--cs-cyan-bright);
-  text-shadow: 0 0 14px rgba(89, 216, 230, 0.5);
-}
-
-.cs-panel-note {
-  font-size: 12px;
-  color: var(--muted);
-  margin: 0 0 14px;
-}
-
-.cs-panel-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-/* level select grid */
-.cs-lv-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin: 4px 0 12px;
-}
-
-.cs-lv-btn {
-  appearance: none;
-  background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  color: var(--fg);
-  font-family: var(--mono);
-  font-size: 13px;
-  padding: 9px 0 7px;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: center;
-  transition: border-color 0.2s var(--ease), color 0.2s var(--ease);
-  -webkit-tap-highlight-color: transparent;
-}
-
-.cs-lv-btn:hover:not([disabled]),
-.cs-lv-btn:focus-visible {
-  border-color: var(--accent);
-  color: var(--accent);
-  outline: none;
-}
-
-.cs-lv-btn .cs-lv-best {
-  font-size: 9px;
-  color: var(--muted);
-  letter-spacing: 0.05em;
-}
-
-.cs-lv-btn.cs-lv-done {
-  border-color: rgba(89, 216, 230, 0.4);
-}
-
-.cs-lv-btn.cs-lv-done .cs-lv-num {
-  color: var(--cs-cyan);
-}
-
-.cs-lv-btn.cs-lv-current {
-  border-color: var(--accent);
-}
-
-.cs-lv-btn[disabled] {
-  opacity: 0.32;
-  cursor: default;
-}
-
-.cs-lock {
-  width: 10px;
-  height: 8px;
-  border: 1.5px solid currentColor;
-  border-radius: 2px;
-  position: relative;
-  margin: 2px auto 0;
-}
-
-.cs-lock::before {
-  content: "";
-  position: absolute;
-  width: 5px;
-  height: 5px;
-  border: 1.5px solid currentColor;
-  border-bottom: none;
-  border-radius: 3px 3px 0 0;
-  left: 50%;
-  top: -6px;
-  transform: translateX(-50%);
-}
-
-/* --- hints ---------------------------------------------------------------- */
-
-.cs-hints {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.cs-hint {
-  position: absolute;
-  width: calc(100% / var(--cols, 7));
-  height: calc(100% / var(--rows, 7));
-  display: grid;
-  place-items: center;
-}
-
-.cs-hint::before {
-  content: "";
-  width: 34%;
-  height: 34%;
-  transform: rotate(45deg);
-  background: rgba(201, 244, 77, 0.85);
-  box-shadow: 0 0 9px rgba(201, 244, 77, 0.55);
-  border-radius: 2px;
-}
-
-.cs-hint.cs-hint-far::before {
-  width: 22%;
-  height: 22%;
-  background: rgba(201, 244, 77, 0.4);
-  box-shadow: 0 0 6px rgba(201, 244, 77, 0.3);
-}
-
-/* selected core marker */
-.cs-core.cs-selected .cs-inner {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.35),
-    0 0 0 2px rgba(201, 244, 77, 0.75),
-    0 0 14px rgba(201, 244, 77, 0.4);
-}
-
-/* --- help ------------------------------------------------------------------ */
-
-.cs-help {
-  margin-top: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.cs-help .para {
-  font-size: 11px;
-}
-
-.cs-page .para {
   color: var(--muted);
 }
-
-/* --- sr-only ------------------------------------------------------------------ */
 
 .cs-page .sr-only {
   position: absolute;
@@ -862,86 +53,501 @@
   border: 0;
 }
 
-/* --- responsive ---------------------------------------------------------------- */
+.cs [hidden] {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------------
+   Shell — board, HUD and controls share one grid so the short-landscape
+   layout can move the readouts beside the bay instead of above it
+   ------------------------------------------------------------------ */
+
+.cs-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.85rem;
+}
+
+/* ------------------------------------------------------------------
+   HUD
+   ------------------------------------------------------------------ */
+
+.cs-hud {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.cs-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.5rem 0.7rem;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+
+.cs-stat .mono {
+  font-size: 9px;
+}
+
+.cs-stat-value {
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  color: var(--fg);
+  white-space: nowrap;
+}
+
+.cs-stat-power .cs-stat-value {
+  color: #cfeff6;
+}
+
+.cs-power-bar {
+  display: block;
+  position: relative;
+  height: 2px;
+  margin-top: 0.1rem;
+  background: rgba(236, 236, 240, 0.10);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.cs-power-bar i {
+  display: block;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #4d97a6, #a7e9f5);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.25s var(--ease);
+}
+
+/* ------------------------------------------------------------------
+   Stage and canvas
+   ------------------------------------------------------------------ */
+
+.cs-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  height: clamp(220px, calc(100dvh - 420px), 620px);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background:
+    radial-gradient(ellipse 78% 88% at 50% 42%, rgba(126, 152, 176, 0.07), transparent 72%),
+    radial-gradient(ellipse 110% 110% at 50% 50%, #101319, #0a0a0c 78%);
+  overflow: hidden;
+}
+
+.cs-canvas {
+  display: block;
+  max-width: 100%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
+.cs-canvas:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Visible hint feedback pill — bottom of the board, transient */
+.cs-hint-msg {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  max-width: calc(100% - 24px);
+  padding: 5px 12px;
+  border: 1px solid rgba(143, 230, 242, 0.45);
+  border-radius: 3px;
+  background: rgba(10, 12, 16, 0.86);
+  color: #cdeef4;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.cs-hint-msg.is-shown {
+  opacity: 1;
+}
+
+.cs-hint-msg.is-warn {
+  border-color: rgba(232, 163, 61, 0.6);
+  color: #f0cf9d;
+}
+
+.cs-hint-msg[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------
+   Overlay panels
+   ------------------------------------------------------------------ */
+
+.cs-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(8, 9, 12, 0.78);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s var(--ease);
+}
+
+.cs-overlay.is-shown {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cs-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  width: min(92%, 320px);
+  max-height: 100%;
+  overflow: auto;
+  padding: 1.4rem 1.2rem;
+  text-align: center;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+}
+
+.cs-panel-wide {
+  width: min(96%, 400px);
+}
+
+.cs-panel-eyebrow {
+  font-size: 9px;
+}
+
+.cs-panel-title {
+  font-family: var(--mono);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #cfeff6;
+}
+
+.cs-panel-note {
+  font-size: 10px;
+  text-transform: none;
+  letter-spacing: 0.08em;
+}
+
+.cs-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+}
+
+/* ------------------------------------------------------------------
+   Level selector
+   ------------------------------------------------------------------ */
+
+.cs-level-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.5rem, 1fr));
+  gap: 0.4rem;
+  width: 100%;
+  margin: 0.2rem 0 0.4rem;
+}
+
+.cs-level-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--fg);
+  background: rgba(236, 236, 240, 0.03);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease), color 0.15s var(--ease),
+    background 0.15s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cs-level-btn:hover:not([disabled]) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.cs-level-btn:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cs-level-btn[aria-current="true"] {
+  border-color: rgba(167, 233, 245, 0.7);
+  background: rgba(143, 230, 242, 0.08);
+  color: #d8f7ff;
+}
+
+.cs-level-tick {
+  position: absolute;
+  top: 0.28rem;
+  right: 0.28rem;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(236, 236, 240, 0.22);
+}
+
+.cs-level-btn.is-done .cs-level-tick {
+  background: #8fe6f2;
+  box-shadow: none;
+}
+
+.cs-level-btn[disabled] {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.cs-level-btn[disabled] .cs-level-tick {
+  box-shadow: none;
+  background: rgba(236, 236, 240, 0.14);
+}
+
+/* ------------------------------------------------------------------
+   Controls
+   ------------------------------------------------------------------ */
+
+.cs-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cs-btn {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.68rem 0.95rem;
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease), color 0.15s var(--ease),
+    background 0.15s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.cs-btn:hover:not([disabled]) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.cs-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.cs-btn:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.cs-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.cs-btn-primary:hover:not([disabled]) {
+  color: var(--accent-ink);
+  filter: brightness(1.08);
+}
+
+.cs-hint {
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  line-height: 1.6;
+  text-transform: none;
+  color: var(--muted);
+}
+
+.cs-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: none;
+}
+
+.cs-meta span:empty {
+  display: none;
+}
+
+/* ------------------------------------------------------------------
+   Help / credits
+   ------------------------------------------------------------------ */
+
+.cs-help-line {
+  margin: 0.2rem 0;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
+.cs-credits {
+  margin-top: 1.4rem;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  color: var(--dim);
+}
+
+/* ------------------------------------------------------------------
+   Narrow screens — reclaim the page gutter for the bay
+   ------------------------------------------------------------------ */
 
 @media (max-width: 480px) {
-  .cs-top {
-    align-items: flex-start;
+  .cs {
+    margin-inline: -0.625rem;
   }
 
-  .cs-actions .cs-btn {
-    padding: 8px 11px;
-    font-size: 11px;
+  .cs-hud {
+    gap: 0.35rem;
   }
 
-  .cs-stat strong {
-    font-size: 15px;
+  .cs-stat {
+    padding: 0.45rem 0.5rem;
   }
 
-  .cs-lv-grid {
-    grid-template-columns: repeat(4, 1fr);
+  .cs-stat-value {
+    font-size: 12px;
+  }
+
+  .cs-btn {
+    padding: 0.62rem 0.8rem;
   }
 }
 
-@media (min-width: 900px) {
+/* ------------------------------------------------------------------
+   Short landscape — the readouts move beside the bay, because a phone
+   held sideways has almost no vertical room to stack them
+   ------------------------------------------------------------------ */
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .cs-page {
+    padding-top: 4.6rem;
+  }
+
+  .cs-page .crumbs {
+    display: none;
+  }
+
+  .cs-page .page-head {
+    margin-bottom: 0.5rem;
+  }
+
+  .cs-page .section-label,
+  .cs-page .page-lede,
+  .cs-title-alt {
+    display: none;
+  }
+
+  .cs-page .page-title {
+    font-size: 1.15rem;
+    margin: 0;
+  }
+
+  .cs-shell {
+    grid-template-columns: minmax(0, 1fr) minmax(10rem, 14rem);
+    grid-template-rows: auto 1fr;
+    gap: 0.7rem;
+  }
+
   .cs-stage {
-    max-width: 520px;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  .cs-hud {
+    grid-column: 2;
+    grid-row: 1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
+  .cs-stat {
+    padding: 0.4rem 0.5rem;
+  }
+
+  .cs-controls {
+    grid-column: 2;
+    grid-row: 2;
+    align-content: start;
+    gap: 0.4rem;
+  }
+
+  .cs-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .cs-btn {
+    padding: 0.55rem 0.4rem;
+    font-size: 9px;
+  }
+
+  .cs-hint {
+    display: none;
   }
 }
 
-/* --- reduced motion -------------------------------------------------------------- */
+/* ------------------------------------------------------------------
+   Reduced motion
+   ------------------------------------------------------------------ */
 
 @media (prefers-reduced-motion: reduce) {
-  .cs-actor.cs-core,
-  .cs-actor.cs-robot {
-    transition-duration: 1ms;
-  }
-
-  .cs-robot .cs-inner {
-    animation: none;
-  }
-
-  .cs-cell .cs-dock::after {
-    animation: none;
-  }
-
-  .cs-cell.cs-dock-flash::before {
-    animation-duration: 0.2s;
-  }
-
-  .cs-seg {
-    transition-duration: 1ms;
-  }
-
-  .cs-stage.cs-launching .cs-star {
-    animation: none;
-    opacity: 0.5;
-  }
-
-  .cs-stage.cs-launching .cs-ship {
-    animation: none;
-  }
-
-  .cs-stage.cs-launching .cs-ship .cs-ship-rise {
-    animation: none;
-  }
-
-  .cs-stage.cs-launching .cs-engine {
-    animation: none;
-    opacity: 0.6;
-  }
-
-  .cs-online.cs-show {
-    animation-duration: 0.2s;
-  }
-
-  .cs-core.cs-trapped .cs-inner,
-  .cs-core.cs-trapped .cs-core-gem {
-    animation: none;
-    box-shadow: 0 0 0 2px var(--cs-amber);
-  }
-
-  .cs-actor .cs-inner.cs-bump {
-    animation: none;
+  .cs-overlay,
+  .cs-power-bar i,
+  .cs-btn,
+  .cs-level-btn {
+    transition: none;
   }
 }

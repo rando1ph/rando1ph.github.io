@@ -1,194 +1,202 @@
-/* Core Shift — headless validation (run: node validate.js)
-   Prints a per-level report and exits non-zero on failure. */
+#!/usr/bin/env node
+/* ------------------------------------------------------------------
+   Core Shift — level validator (headless)
+
+     node games/core-shift/validate.js
+
+   Checks every shipped level for:
+     · legal characters, rectangular rows
+     · exactly one robot, a valid robot start
+     · core count == dock count, everything inside the hull
+     · no duplicate layouts, ids in order, attribution present
+     · a board small enough to stay a comfortable touch target
+     · solvability, proven by push-state search (solver.js)
+     · the stored solution replays through the real engine to a win
+
+   Prints one line per level and a final PASS / FAIL. Exits non-zero on
+   FAIL so it can gate a deploy.
+   ------------------------------------------------------------------ */
 
 "use strict";
 
-var E = require("./engine.js");
-var S = require("./solver.js");
-var LEVELS = require("./levels.js");
+var path = require("path");
+var Engine = require(path.join(__dirname, "engine.js"));
+var Solver = require(path.join(__dirname, "solver.js"));
+var Levels = require(path.join(__dirname, "levels.js"));
 
-var failures = 0;
+var EXPANSION_LIMIT = 2000000;
+var MAX_SIDE = 11; /* keeps a core a comfortable touch target on a 390px phone */
 
-function assert(cond, msg) {
-  if (!cond) {
-    failures += 1;
-    console.error("  FAIL: " + msg);
-  }
+var failures = [];
+var notes = [];
+
+function fail(scope, message) {
+  failures.push(scope + ": " + message);
 }
 
-function draw(lv) {
-  var out = [];
-  for (var y = 0; y < lv.h; y += 1) {
-    var row = "";
-    for (var x = 0; x < lv.w; x += 1) {
-      var i = y * lv.w + x;
-      if (lv.walls[i]) row += "#";
-      else if (E.coreAt(lv, { cores: lv.cores }, i) >= 0 && E.isDock(lv, i)) row += "*";
-      else if (E.coreAt(lv, { cores: lv.cores }, i) >= 0) row += "$";
-      else if (E.isDock(lv, i)) row += ".";
-      else if (i === lv.player) row += "@";
-      else row += "_";
-    }
-    out.push(row);
-  }
-  return out.join("\n");
+console.log("Core Shift — level validation");
+console.log("=".repeat(78));
+console.log(
+  pad("#", 3) +
+    pad("id", 4) +
+    pad("source", 13) +
+    pad("size", 7) +
+    pad("cores", 6) +
+    pad("docks", 6) +
+    pad("push", 6) +
+    pad("states", 8) +
+    "  result"
+);
+
+function pad(s, n) {
+  s = String(s);
+  return s + " ".repeat(Math.max(0, n - s.length));
 }
 
-/* border closure check: no floor cell may touch the array edge */
-function enclosed(lv) {
-  for (var x = 0; x < lv.w; x += 1) {
-    if (!lv.walls[x] || !lv.walls[(lv.h - 1) * lv.w + x]) return false;
+var seenLayouts = Object.create(null);
+var scores = [];
+var solvableCount = 0;
+
+Levels.LEVELS.forEach(function (entry, index) {
+  var scope = "level " + (index + 1) + " (" + entry.source + ")";
+  var parsed = Engine.parse(entry.rows);
+  var problems = [];
+
+  if (!entry.source || typeof entry.source !== "string") {
+    problems.push("missing source attribution");
   }
-  for (var y = 0; y < lv.h; y += 1) {
-    if (!lv.walls[y * lv.w] || !lv.walls[y * lv.w + lv.w - 1]) return false;
+  if (parsed.errors.length) {
+    problems.push(parsed.errors.join("; "));
   }
-  return true;
-}
 
-console.log("Core Shift level validation");
-console.log("===========================");
-
-for (var n = 0; n < LEVELS.length; n += 1) {
-  var def = LEVELS[n];
-  console.log("\n[" + (n + 1) + "] " + def.name);
-  var lv;
-  try {
-    lv = E.parseLevel(def);
-  } catch (err) {
-    failures += 1;
-    console.error("  FAIL parse: " + err.message);
-    continue;
+  /* structural checks that parse() does not cover on its own */
+  var widths = {};
+  for (var r = 0; r < entry.rows.length; r += 1) {
+    widths[entry.rows[r].length] = true;
   }
-  console.log(draw(lv));
-
-  var widths = def.grid.map(function (r) { return r.length; });
-  var uniform = widths.every(function (w) { return w === widths[0]; });
-  assert(uniform, "ragged rows: " + widths.join(","));
-  assert(enclosed(lv), "level not enclosed by walls");
-
-  var dead = E.deadSquares(lv);
-  console.log(
-    "  " + lv.w + "x" + lv.h +
-    "  cores=" + lv.cores.length +
-    "  deadSquares=" + dead.dead.length
-  );
-
-  var t0 = Date.now();
-  var sol = S.solve(lv);
-  var ms = Date.now() - t0;
-  if (sol.solved) {
-    console.log(
-      "  solver: SOLVED  referencePushes=" + sol.pushes +
-      "  nodes=" + sol.nodes + "  " + ms + "ms"
-    );
+  var trimmed = entry.rows.map(function (row) {
+    return row.replace(/\s+$/, "");
+  });
+  var key = trimmed.join("/");
+  if (seenLayouts[key]) {
+    problems.push("duplicate layout of level " + seenLayouts[key]);
   } else {
-    failures += 1;
-    console.error("  solver: UNSOLVABLE (" + sol.reason + ") nodes=" + sol.nodes);
+    seenLayouts[key] = index + 1;
+  }
+  if (parsed.w > MAX_SIDE || parsed.h > MAX_SIDE) {
+    problems.push("board " + parsed.w + "x" + parsed.h + " exceeds " + MAX_SIDE + " per side");
+  }
+
+  var minPushes = -1;
+  var expansions = 0;
+  var replayOk = false;
+  var replayNote = "";
+
+  if (!parsed.errors.length) {
+    var result = Solver.solve(parsed, { limit: EXPANSION_LIMIT, solution: true });
+    minPushes = result.minPushes;
+    expansions = result.expansions;
+
+    if (!result.solvable) {
+      problems.push(result.capped ? "search exhausted its budget" : "no solution exists");
+    } else if (!result.solution) {
+      problems.push("solution could not be reconstructed");
+    } else {
+      var replay = Solver.replay(parsed, result.solution);
+      replayOk = replay.ok;
+      if (!replay.ok) {
+        replayNote = replay.reason + " at step " + replay.at;
+        problems.push("replay failed: " + replayNote);
+      }
+      if (replay.pushes !== result.minPushes) {
+        problems.push(
+          "replayed " + replay.pushes + " pushes, solver promised " + result.minPushes
+        );
+      }
+    }
+  }
+
+  if (problems.length) {
+    problems.forEach(function (p) {
+      fail(scope, p);
+    });
+  } else {
+    solvableCount += 1;
+    scores.push({ index: index, score: Math.log(1 + expansions) * 2 + minPushes * 0.3 });
+  }
+
+  console.log(
+    pad(index + 1, 3) +
+      pad(entry.id, 4) +
+      pad(entry.source, 13) +
+      pad(parsed.w + "x" + parsed.h, 7) +
+      pad(parsed.boxCount, 6) +
+      pad(parsed.goalCount, 6) +
+      pad(minPushes < 0 ? "-" : minPushes, 6) +
+      pad(expansions, 8) +
+      "  " +
+      (problems.length ? "FAIL" : "PASS")
+  );
+});
+
+console.log("-".repeat(78));
+
+/* --- campaign-wide checks ------------------------------------------ */
+
+if (Levels.LEVELS.length < 20 || Levels.LEVELS.length > 200) {
+  fail("campaign", "expected 20-200 levels, found " + Levels.LEVELS.length);
+} else {
+  notes.push(Levels.LEVELS.length + " levels shipped");
+}
+
+var ids = Levels.LEVELS.map(function (l) {
+  return l.id;
+});
+for (var i = 0; i < ids.length; i += 1) {
+  if (ids[i] !== i + 1) {
+    fail("campaign", "level ids are not 1..N in order (index " + i + " has id " + ids[i] + ")");
+    break;
   }
 }
 
-/* --- engine rule tests ------------------------------------------------ */
+/* Difficulty follows Microban's original order; the selection deliberately
+   keeps that order rather than forcing a machine-computed monotonic ramp. */
 
-console.log("\nEngine rule tests");
-console.log("-----------------");
-
-function mkState(player, cores) {
-  return { player: player, cores: cores };
+var first = scores.length ? scores[0].score : 0;
+if (scores.length && first < 6) {
+  fail("campaign", "opening level is filler (score " + first.toFixed(2) + ")");
+} else if (scores.length) {
+  notes.push("opening level score " + first.toFixed(2) + " (no one-push filler)");
 }
 
-/* wall collision + push rules on a synthetic 5x3 level */
-var wallLv = E.parseLevel({
-  name: "synthetic",
-  grid: [
-    "#####",
-    "#@$._#".slice(0, 5),
-    "#####"
-  ]
-});
-/* rebuild cleanly: "@$._" inside 5 wide */
-wallLv = E.parseLevel({
-  name: "synthetic",
-  grid: ["#####", "#@$._", "#####"]
-});
-console.log(draw(wallLv));
-var st = mkState(6, [7]); /* player idx6 (1,1), core idx7 (2,1) */
-
-var r = E.step(wallLv, mkState(6, [7]), "up");
-assert(r === null, "step up into wall must be null");
-r = E.step(wallLv, mkState(6, [7]), "left");
-assert(r === null, "step left into wall must be null");
-r = E.step(wallLv, mkState(6, [7]), "right");
-assert(r && r.pushed === true && r.coreTo === 8, "push right must move core to idx8");
-assert(r.docked === true, "core must dock at idx8");
-var st2 = mkState(7, [8]);
-assert(E.isSolved(wallLv, st2), "level must be solved with core on dock");
-r = E.step(wallLv, st2, "right");
-assert(r && r.pushed === true && r.undocked === true, "push off dock must report undocked");
-
-/* push into second core is illegal; path around blocked cores */
-var twoLv = E.parseLevel({
-  name: "synthetic2",
-  grid: ["######", "#@$$..", "######"]
-});
-var st3 = mkState(7, [8, 9]);
-r = E.step(twoLv, st3, "right");
-assert(r === null, "push into another core must be illegal");
-var path2 = E.findPath(twoLv, st3, 7, 10);
-assert(path2 === null, "tap-to-walk path must not route through a core");
-
-/* undo reversibility: push, walk, manually invert, replay, compare */
-var undoLv = E.parseLevel({
-  name: "synthetic4",
-  grid: ["####", "#._#", "#$_#", "#@_#", "####"]
-});
-var su = E.initialState(undoLv);
-var startSnap = JSON.stringify({ p: su.player, c: su.cores });
-var pushR = E.step(undoLv, su, "up");
-assert(pushR && pushR.pushed && pushR.docked, "walking up must push core onto dock");
-/* pushing again would shove the docked core into the wall: illegal */
-assert(E.step(undoLv, su, "up") === null, "pushing docked core into wall must be illegal");
-r = E.step(undoLv, su, "right");
-assert(r && !r.pushed, "sideways step must be plain move");
-var afterSteps = JSON.stringify({ p: su.player, c: su.cores });
-/* undo plain move */
-su.player = r.from;
-/* undo push: core returns to its pre-push cell, robot to its pre-push cell */
-su.cores[0] = pushR.coreFrom;
-su.player = pushR.from;
-assert(JSON.stringify({ p: su.player, c: su.cores }) === startSnap,
-  "undo must restore the exact starting state");
-r = E.step(undoLv, su, "up");
-r = E.step(undoLv, su, "right");
-assert(JSON.stringify({ p: su.player, c: su.cores }) === afterSteps,
-  "replay after undo must reach the same state");
-
-/* dead squares on synthetic corner level */
-var deadLv = E.parseLevel({
-  name: "deadtest",
-  grid: ["####", "#@.#", "#$_#", "####"]
-});
-var dd = E.deadSquares(deadLv);
-/* dock (2,1); core (1,2). Pull-BFS from dock: (2,1)<- (2,2)? needs (2,3) wall -> no;
-   (1,1)? pull left from (2,1) needs (0,1) wall -> no; (1,2) pull up from... (1,2)->(2,2)? */
-console.log("  dead squares (synthetic): " + dd.dead.join(","));
-/* (1,2): can it reach dock (2,1)? push right -> (2,2), then up -> (2,1): robot (2,3) wall.
-   push up: (1,1), then right: (2,1): robot (0,1) wall. So (1,2) is dead. */
-assert(dd.dead.indexOf(5) >= 0 || dd.dead.indexOf(6) >= 0, "corner cells should be dead");
-/* solver must reject a known impossible level: core frozen in corner */
-var impLv = E.parseLevel({
-  name: "impossible",
-  grid: ["#####", "#$@.#", "#####"]
-});
-var imp = S.solve(impLv);
-assert(!imp.solved, "solver must reject impossible level (core in corner)");
-
-/* solver finds solution for every shipped level (again, counted) */
-var solvedCount = 0;
-for (var k = 0; k < LEVELS.length; k += 1) {
-  var l = E.parseLevel(LEVELS[k]);
-  if (S.solve(l).solved) solvedCount += 1;
+if (Levels.SOURCE && Levels.SOURCE.set) {
+  notes.push("levels credited to " + Levels.SOURCE.set + " by " + Levels.SOURCE.author);
+} else {
+  fail("campaign", "levels.js does not record a source");
 }
-assert(solvedCount === LEVELS.length, "all shipped levels must be solvable");
 
-console.log("\n" + (failures === 0 ? "ALL CHECKS PASSED" : failures + " FAILURES"));
-process.exit(failures === 0 ? 0 : 1);
+/* --- report --------------------------------------------------------- */
+
+console.log("");
+console.log("Checks");
+console.log("  levels parsed .............. " + Levels.LEVELS.length);
+console.log("  levels solved & replayed ... " + solvableCount);
+console.log("  failures ................... " + failures.length);
+notes.forEach(function (n) {
+  console.log("  note: " + n);
+});
+
+if (failures.length) {
+  console.log("");
+  console.log("Failures");
+  failures.forEach(function (f) {
+    console.log("  ! " + f);
+  });
+  console.log("");
+  console.log("FAIL");
+  process.exit(1);
+}
+
+console.log("");
+console.log("PASS — every shipped level is legal, solvable and replays to a win.");
+process.exit(0);

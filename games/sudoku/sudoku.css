@@ -1,0 +1,558 @@
+/* ------------------------------------------------------------------
+   Sudoku — randolf.dev game styles
+   The board is the priority: strong 3x3 separation, light internal
+   lines, legible givens/entries/notes. Shared shell comes from
+   style.css; this file owns the game surface.
+   ------------------------------------------------------------------ */
+
+.sd {
+  --sd-line: rgba(236, 236, 240, 0.16);
+  --sd-line-strong: rgba(236, 236, 240, 0.55);
+  --sd-given: #f4f4f8;
+  --sd-entry: var(--accent);
+  --sd-note: rgba(236, 236, 240, 0.7);
+  --sd-sel: rgba(201, 244, 77, 0.24);
+  --sd-peer: rgba(236, 236, 240, 0.05);
+  --sd-same: rgba(201, 244, 77, 0.12);
+  --sd-conflict: #ff6b6b;
+  --sd-hint: #7ed0ff;
+  max-width: 32rem;
+  margin: 0 auto;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sd .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sd [hidden] {
+  display: none !important;
+}
+
+.sd-page .page-head {
+  margin-bottom: clamp(1.5rem, 4vw, 2.25rem);
+}
+
+.sd-page .page-title {
+  margin: 0.5rem 0 0.9rem;
+}
+
+/* ------------------------------------------------------------------
+   Top bar — difficulty + hud
+   ------------------------------------------------------------------ */
+
+.sd-top {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+}
+
+.sd-diff {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.sd-diff-btn {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 0.7rem 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sd-diff-btn:last-child {
+  border-right: 0;
+}
+
+.sd-diff-btn:hover {
+  color: var(--fg);
+}
+
+.sd-diff-btn[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.sd-diff-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sd-hud {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.sd-stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 4.6rem;
+  padding: 0.5rem 0.8rem;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+
+.sd-stat .mono {
+  font-size: 9px;
+}
+
+.sd-stat-value {
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  color: var(--fg);
+}
+
+/* ------------------------------------------------------------------
+   Board
+   ------------------------------------------------------------------ */
+
+.sd-stage {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.85rem;
+}
+
+.sd-board-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.sd-board {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  aspect-ratio: 1 / 1;
+  border: 2px solid var(--sd-line-strong);
+  border-radius: 2px;
+  background: var(--bg-2);
+  overflow: hidden;
+}
+
+.sd-board.is-complete {
+  box-shadow: 0 0 0 1px var(--accent), 0 0 28px rgba(201, 244, 77, 0.28);
+  transition: box-shadow 0.5s var(--ease);
+}
+
+.sd-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--sd-line);
+  border-bottom: 1px solid var(--sd-line);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background 0.12s linear;
+}
+
+/* 3x3 box separation */
+.sd-cell:nth-child(9n + 3),
+.sd-cell:nth-child(9n + 6) {
+  border-right: 2px solid var(--sd-line-strong);
+}
+
+.sd-cell:nth-child(9n) {
+  border-right: 0;
+}
+
+.sd-cell:nth-child(n + 19):nth-child(-n + 27),
+.sd-cell:nth-child(n + 46):nth-child(-n + 54) {
+  border-bottom: 2px solid var(--sd-line-strong);
+}
+
+.sd-cell:nth-child(n + 73) {
+  border-bottom: 0;
+}
+
+.sd-cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  z-index: 3;
+}
+
+.sd-val {
+  font-size: clamp(1rem, 5vw, 1.9rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.12s linear;
+}
+
+.sd-cell.is-given .sd-val {
+  color: var(--sd-given);
+  font-weight: 700;
+}
+
+.sd-cell.is-entry .sd-val {
+  color: var(--sd-entry);
+  font-weight: 500;
+}
+
+.sd-notes {
+  position: absolute;
+  inset: 7%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+}
+
+.sd-notes i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-style: normal;
+  font-size: clamp(0.52rem, 2.1vw, 0.78rem);
+  line-height: 1;
+  color: var(--sd-note);
+  font-variant-numeric: tabular-nums;
+}
+
+.sd-notes i[hidden] {
+  visibility: hidden;
+}
+
+/* Highlight layers — peers subtle, selection dominant */
+.sd-cell.is-peer {
+  background: var(--sd-peer);
+}
+
+.sd-cell.is-same {
+  background: var(--sd-same);
+}
+
+.sd-cell.is-conflict {
+  background: rgba(255, 107, 107, 0.16);
+}
+
+.sd-cell.is-conflict .sd-val {
+  color: var(--sd-conflict);
+}
+
+.sd-cell.is-sel {
+  background: var(--sd-sel);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  z-index: 2;
+}
+
+.sd-cell.is-sel .sd-notes i {
+  color: var(--fg);
+}
+
+.sd-cell.is-hint {
+  box-shadow: inset 0 0 0 2px var(--sd-hint);
+  z-index: 2;
+}
+
+.sd-cell.is-hint-pulse {
+  animation: sd-pulse 1.1s var(--ease) infinite;
+}
+
+.sd-cell.is-hint i {
+  color: var(--sd-hint);
+}
+
+/* Victory sweep — one restrained 3x3 box stagger */
+.sd-board.is-complete .sd-cell {
+  animation: sd-box-in 0.42s var(--ease) both;
+  animation-delay: calc(var(--sd-b, 0) * 45ms);
+}
+
+@keyframes sd-pulse {
+  0%, 100% { background: rgba(126, 208, 255, 0.06); }
+  50% { background: rgba(126, 208, 255, 0.22); }
+}
+
+@keyframes sd-box-in {
+  from { background: rgba(201, 244, 77, 0.32); }
+  to { background: transparent; }
+}
+
+/* ------------------------------------------------------------------
+   Overlays
+   ------------------------------------------------------------------ */
+
+.sd-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(10, 10, 12, 0.86);
+  backdrop-filter: blur(2px);
+  border: 2px solid var(--line);
+  z-index: 5;
+}
+
+.sd-panel {
+  text-align: center;
+  max-width: 22rem;
+}
+
+.sd-panel-eyebrow {
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.sd-panel-title {
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  margin-bottom: 0.8rem;
+}
+
+.sd-panel-note {
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+.sd-panel-note strong {
+  color: var(--fg);
+}
+
+.sd-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.sd-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 0.5rem;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  vertical-align: -2px;
+  animation: sd-spin 0.8s linear infinite;
+}
+
+@keyframes sd-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ------------------------------------------------------------------
+   Feedback + controls
+   ------------------------------------------------------------------ */
+
+.sd-feedback {
+  min-height: 1.4em;
+  margin-bottom: 0.9rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.sd-feedback.is-note {
+  color: var(--sd-hint);
+}
+
+.sd-feedback.is-warn {
+  color: var(--sd-conflict);
+}
+
+.sd-pad {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 6px;
+  margin-bottom: 0.6rem;
+}
+
+.sd-key {
+  position: relative;
+  font-family: var(--mono);
+  font-size: clamp(0.95rem, 4.2vw, 1.15rem);
+  color: var(--fg);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  min-height: 48px;
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease), color 0.15s var(--ease),
+    background 0.15s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.sd-key:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sd-key.is-done {
+  opacity: 0.32;
+}
+
+.sd-key:focus-visible,
+.sd-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sd-key .sd-key-count {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  font-size: 8px;
+  color: var(--muted);
+}
+
+.sd-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 0.6rem;
+}
+
+.sd-actions-puzzle {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.sd-btn {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.7rem 0.6rem;
+  min-height: 44px;
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease), color 0.15s var(--ease),
+    background 0.15s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.sd-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sd-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.sd-btn:disabled:hover {
+  border-color: var(--line);
+  color: var(--fg);
+}
+
+.sd-btn.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.sd-btn.is-active:hover {
+  color: var(--accent-ink);
+}
+
+.sd-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.sd-btn-primary:hover {
+  color: var(--accent-ink);
+  filter: brightness(1.08);
+}
+
+/* ------------------------------------------------------------------
+   Responsive — phone first-class
+   ------------------------------------------------------------------ */
+
+@media (max-width: 520px) {
+  .sd-pad {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .sd-key {
+    min-height: 50px;
+  }
+
+  .sd-stat {
+    min-width: 4rem;
+    padding: 0.4rem 0.65rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .sd-actions {
+    gap: 4px;
+  }
+
+  .sd-btn {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    padding: 0.6rem 0.35rem;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Reduced motion
+   ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-cell,
+  .sd-val,
+  .sd-key,
+  .sd-btn,
+  .sd-diff-btn {
+    transition-duration: 0.01ms !important;
+  }
+
+  .sd-cell.is-hint-pulse {
+    animation: none;
+    background: rgba(126, 208, 255, 0.16);
+  }
+
+  .sd-board.is-complete .sd-cell {
+    animation: none;
+  }
+
+  .sd-board.is-complete {
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+
+  .sd-spinner {
+    animation-duration: 1.4s;
+  }
+}

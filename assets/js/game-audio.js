@@ -1,6 +1,7 @@
 /* ------------------------------------------------------------------
    Game audio — randolf.dev (shared: Minesweeper / Gomoku / Reversi /
-   Rope Tangle / 2048). Restrained Web Audio synthesis, no assets, no BGM.
+   Rope Tangle / 2048 / Frontline / Core Shift). Restrained Web Audio
+   synthesis, no assets, no BGM.
 
    Design follows the existing Water Sort sound module's approach:
    lazy AudioContext, one master gain, short filtered envelopes.
@@ -513,6 +514,120 @@
     }
   };
 
+  /* --- Core Shift: servos, bulkheads and power coming back on. ------- */
+  var CS = {
+    /* the robot's treads on deck plate — deliberately dry, no pitch */
+    move: function () {
+      play("cs.move", 45, function (c, d, t) {
+        noise(c, d, t, 0.045, 0.032, "bandpass", vary(1150, 0.08), 700, 1.1);
+        tone(c, d, t, vary(150, 0.05), 118, 0.05, 0.035, "sine");
+      });
+    },
+    /* a core grinding across the deck: heavier, lower, longer */
+    push: function () {
+      play("cs.push", 70, function (c, d, t) {
+        noise(c, d, t, 0.16, 0.075, "lowpass", vary(900, 0.08), 260, 0.9);
+        tone(c, d, t, vary(96, 0.04), 62, 0.17, 0.075, "sine");
+        noise(c, d, t + 0.09, 0.05, 0.03, "bandpass", 1500, 1100, 1.4);
+      });
+    },
+    /* seated in the socket: a solid mechanical stop, then the contact */
+    dock: function () {
+      play("cs.dock", 120, function (c, d, t) {
+        tone(c, d, t, vary(175, 0.03), 82, 0.13, 0.2, "sine");
+        noise(c, d, t, 0.045, 0.075, "bandpass", 2400, 1300, 1.8);
+        tone(c, d, t + 0.07, 620, 940, 0.22, 0.07, "sine");
+        tone(c, d, t + 0.14, 1240, 1240, 0.18, 0.032, "sine");
+      });
+    },
+    /* pulled back off the socket: power releasing, not failing */
+    undock: function () {
+      play("cs.undock", 120, function (c, d, t) {
+        tone(c, d, t, 540, 300, 0.13, 0.055, "triangle");
+        noise(c, d, t, 0.05, 0.045, "lowpass", 1400, 600, 0.9);
+      });
+    },
+    /* a hull section coming online */
+    activate: function () {
+      play("cs.activate", 160, function (c, d, t) {
+        tone(c, d, t, 392, 392, 0.1, 0.05, "sine");
+        tone(c, d, t + 0.07, 587, 587, 0.16, 0.055, "sine");
+        noise(c, d, t, 0.1, 0.026, "bandpass", 1800, 2600, 1.2);
+      });
+    },
+    /* a push that could not happen — dull, short, never harsh */
+    blocked: function () {
+      play("cs.blocked", 160, function (c, d, t) {
+        tone(c, d, t, 128, 96, 0.08, 0.075, "sine");
+        noise(c, d, t, 0.045, 0.045, "lowpass", 500, 240, 0.8);
+      });
+    },
+    /* all cores home: the hull is alive. ~1.4s, matching the sequence. */
+    complete: function () {
+      play("cs.complete", 600, function (c, d, t) {
+        tone(c, d, t, 110, 55, 0.7, 0.14, "sine");
+        [392, 523.25, 659.25, 784].forEach(function (f, i) {
+          tone(c, d, t + 0.16 + i * 0.13, f, f, 0.42, 0.085, "sine");
+        });
+        noise(c, d, t + 0.1, 0.7, 0.05, "lowpass", 900, 3200, 0.7);
+        tone(c, d, t + 0.78, 1568, 1568, 0.4, 0.035, "sine");
+      });
+    },
+    ui: function () {
+      play("cs.ui", 45, function (c, d, t) {
+        noise(c, d, t, 0.022, 0.05, "bandpass", vary(2600, 0.06), 2000, 2);
+        tone(c, d, t, vary(660, 0.04), 520, 0.035, 0.045, "sine");
+      });
+    }
+  };
+
+  /* --- Sudoku: quiet digits, pencil ticks, no time pressure. -------- */
+  var SD = {
+    /* a digit settling into a cell — soft wooden tap */
+    place: function () {
+      play("sd.place", 40, function (c, d, t) {
+        tone(c, d, t, vary(320, 0.03), 240, 0.055, 0.11, "triangle");
+        noise(c, d, t, 0.015, 0.04, "bandpass", vary(2000, 0.06), 1600, 1.8);
+      });
+    },
+    /* toggling a pencil mark — drier and higher */
+    note: function () {
+      play("sd.note", 35, function (c, d, t) {
+        tone(c, d, t, vary(720, 0.04), 620, 0.03, 0.06, "triangle");
+      });
+    },
+    /* clearing a value or note */
+    erase: function () {
+      play("sd.erase", 40, function (c, d, t) {
+        tone(c, d, t, 300, 190, 0.05, 0.07, "sine");
+        noise(c, d, t, 0.02, 0.03, "lowpass", 900, 500, 0.9);
+      });
+    },
+    /* undo — reversal of the previous cue */
+    undo: function () {
+      play("sd.undo", 40, function (c, d, t) {
+        tone(c, d, t, 260, 340, 0.05, 0.06, "sine");
+      });
+    },
+    /* a rule conflict, or a request that cannot be answered */
+    error: function () {
+      play("sd.error", 140, function (c, d, t) {
+        tone(c, d, t, 200, 150, 0.09, 0.075, "triangle");
+        tone(c, d, t + 0.06, 160, 128, 0.09, 0.05, "sine");
+      });
+    },
+    /* a logical hint revealed */
+    hint: function () {
+      play("sd.hint", 140, function (c, d, t) {
+        tone(c, d, t, 660, 660, 0.08, 0.06, "sine");
+        tone(c, d, t + 0.08, 990, 990, 0.14, 0.05, "sine");
+      });
+    },
+    complete: function () {
+      play("sd.complete", 500, success);
+    }
+  };
+
   /* --- public API ------------------------------------------------------------ */
 
   var GameAudio = {
@@ -555,7 +670,9 @@
     gm: GM,
     rv: RV,
     rt: RT,
-    g2048: G2
+    cs: CS,
+    g2048: G2,
+    sd: SD
   };
 
   global.GameAudio = GameAudio;

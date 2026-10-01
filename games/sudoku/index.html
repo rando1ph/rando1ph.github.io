@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Sudoku — classic 9x9 logic puzzles generated endlessly with logical hints, pencil notes and three real difficulty bands. Play on randolf.dev.">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>Sudoku — Games · RANDOLF.DEV</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3 L20 12 L12 21 L4 12 Z' fill='%23c9f44d'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <link rel="stylesheet" href="sudoku.css">
+</head>
+<body>
+
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-noise" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="brand" href="../../">RANDOLF<span class="brand-dot">.</span></a>
+    <nav class="site-nav" aria-label="Primary">
+      <ul>
+        <li><a href="../../games/" aria-current="page">Games</a></li>
+        <li><a href="../../news/">News</a></li>
+        <li><a href="../../ai/">AI</a></li>
+        <li class="nav-clock"><span data-clock>--:--:-- GMT</span></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="page sd-page" id="top">
+    <div class="page-inner">
+
+      <p class="crumbs mono reveal">
+        <a href="../../"><span class="crumb-arr" aria-hidden="true">←</span> Home</a>
+        <span class="crumb-sep" aria-hidden="true">/</span>
+        <a href="../">Games</a>
+        <span class="crumb-sep" aria-hidden="true">/</span>
+        Sudoku
+      </p>
+
+      <header class="page-head reveal">
+        <p class="section-label mono">Game 008 · 数独</p>
+        <h1 class="page-title">Sudoku</h1>
+        <p class="page-lede">Classic logic puzzles, generated endlessly.</p>
+      </header>
+
+      <section class="block sd reveal" aria-label="Sudoku game">
+
+        <div class="sd-top">
+          <div class="sd-diff" role="group" aria-label="Difficulty">
+            <button type="button" class="sd-diff-btn" data-sd-diff="easy" aria-pressed="true">Easy</button>
+            <button type="button" class="sd-diff-btn" data-sd-diff="medium" aria-pressed="false">Medium</button>
+            <button type="button" class="sd-diff-btn" data-sd-diff="hard" aria-pressed="false">Hard</button>
+          </div>
+          <div class="sd-hud">
+            <div class="sd-stat">
+              <span class="mono">Time</span>
+              <strong class="sd-stat-value mono" data-sd-timer>00:00</strong>
+            </div>
+            <div class="sd-stat">
+              <span class="mono">Hints</span>
+              <strong class="sd-stat-value mono" data-sd-hints>0</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="sd-stage">
+          <div class="sd-board-wrap">
+            <div class="sd-board" data-sd-board role="group" aria-label="Sudoku board. Use the arrow keys or tap a cell to select, then enter a digit."></div>
+
+            <div class="sd-overlay" data-sd-overlay hidden>
+              <div class="sd-panel" data-sd-panel="generating">
+                <p class="sd-panel-eyebrow mono"><span class="sd-spinner" aria-hidden="true"></span>Generating</p>
+                <p class="sd-panel-title">Preparing puzzle</p>
+                <p class="sd-panel-note mono" data-sd-generating-note>Easy — solving logic takes a moment</p>
+              </div>
+
+              <div class="sd-panel" data-sd-panel="confirm" hidden>
+                <p class="sd-panel-eyebrow mono">Unsaved progress</p>
+                <p class="sd-panel-title" data-sd-confirm-title>Start over?</p>
+                <p class="sd-panel-note mono" data-sd-confirm-note>Your current entries will be lost.</p>
+                <div class="sd-panel-actions">
+                  <button type="button" class="sd-btn" data-sd-cancel>Cancel</button>
+                  <button type="button" class="sd-btn sd-btn-primary" data-sd-confirm>Continue</button>
+                </div>
+              </div>
+
+              <div class="sd-panel" data-sd-panel="complete" hidden>
+                <p class="sd-panel-eyebrow mono">Puzzle complete</p>
+                <p class="sd-panel-title">Solved</p>
+                <p class="sd-panel-note mono">
+                  <strong data-sd-complete-diff>Easy</strong> ·
+                  <strong data-sd-complete-time>00:00</strong> ·
+                  Hints <strong data-sd-complete-hints>0</strong>
+                </p>
+                <div class="sd-panel-actions">
+                  <button type="button" class="sd-btn sd-btn-primary" data-sd-new>New Puzzle</button>
+                  <button type="button" class="sd-btn" data-sd-replay>Replay</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="sd-feedback mono" data-sd-feedback></p>
+        <p class="sr-only" data-sd-live role="status" aria-live="polite"></p>
+
+        <div class="sd-pad" role="group" aria-label="Number pad" data-sd-pad></div>
+
+        <div class="sd-actions" role="group" aria-label="Game actions">
+          <button type="button" class="sd-btn" data-sd-notes aria-pressed="false">Notes</button>
+          <button type="button" class="sd-btn" data-sd-erase>Erase</button>
+          <button type="button" class="sd-btn" data-sd-undo disabled>Undo</button>
+          <button type="button" class="sd-btn" data-sd-hint>Hint</button>
+        </div>
+
+        <div class="sd-actions sd-actions-puzzle" role="group" aria-label="Puzzle actions">
+          <button type="button" class="sd-btn sd-btn-primary" data-sd-new-bar>New Puzzle</button>
+          <button type="button" class="sd-btn" data-sd-restart>Restart</button>
+          <button type="button" class="sd-btn" data-sd-sound aria-pressed="true">Sound on</button>
+        </div>
+
+      </section>
+
+      <section class="block reveal">
+        <div class="block-head">
+          <p class="section-label mono">Notes</p>
+          <h2 class="block-title">How this Sudoku works</h2>
+        </div>
+        <p class="para">
+          Every puzzle is generated on the fly and guaranteed to have exactly one
+          solution. Difficulty is judged by the solving techniques a puzzle actually
+          requires — not by how many clues it happens to show.
+        </p>
+        <p class="para mono">
+          Desktop — arrow keys or WASD move the selection, 1–9 fill, Backspace / Delete
+          erase, N toggles notes, Z undoes, H gives a hint.
+        </p>
+        <p class="para mono">
+          Touch — tap a cell to select, then use the number pad. Notes toggles pencil
+          marks; Erase clears a value or the notes in the selected cell.
+        </p>
+        <p class="para mono">
+          Hints come from the same logical solver used to grade the puzzle. They explain
+          the next deductive step; they never simply fill in an answer.
+        </p>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="mono">© <span data-year>2026</span> RANDOLF.DEV</div>
+    <div class="mono">Built by hand — HTML · CSS · JS</div>
+    <div class="mono" data-clock>--:--:-- GMT</div>
+  </footer>
+
+  <script src="../../assets/js/main.js"></script>
+  <script src="../../assets/js/game-audio.js"></script>
+  <script src="sudoku-engine.js"></script>
+  <script src="sudoku.js"></script>
+</body>
+</html>

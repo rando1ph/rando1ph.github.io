@@ -1,0 +1,52 @@
+Core Shift — level attribution
+==============================
+
+The campaign's puzzles come from Microban, a set of 155 hand-made Sokoban
+puzzles by David W. Skinner (2000).
+
+  Author : David W. Skinner  <sasquatch@bentonrea.com>
+  Set    : Microban (155 puzzles, released April 2000)
+  Source : http://www.sneezingtiger.com/sokoban/levels/microbanText.html
+           https://github.com/sebnozzi/minimicro-sokoban (microban.txt)
+
+Licence
+-------
+
+The author's own terms, quoted from his level page:
+
+  "My sets are available here in text format. ... These sets may be
+   freely distributed provided they remain properly credited."
+
+Microban is therefore redistributed here free of charge, with the author
+credited in the game's credits line, in the header comment of levels.js
+and in this file. No Microban puzzle is original to randolf.dev and none
+is presented as such. Only the presentation — the spacecraft maintenance
+bay framing, the art, the engine and the interface — belongs to this site.
+
+Microban is a fan-made level set for Sokoban. Sokoban itself was created
+by Hiroyuki Imabayashi and is a trademark of Thinking Rabbit; no Thinking
+Rabbit levels are used anywhere in this game.
+
+Campaign selection
+------------------
+
+The game ships 103 of the 155 puzzles, kept in Microban's original order.
+The rest were filtered out by three rules, each in the service of the
+ship's constraints rather than of the levels themselves:
+
+  · boards with either side longer than 11 cells are dropped — a core
+    would stop being a comfortable touch target on a 390px phone;
+  · boards the bundled push-state solver cannot prove solvable within
+    500k states are dropped — a level is never shipped unverified;
+  · boards whose initial-state solve takes more than ~0.4s on the build
+    machine are dropped — the in-game Hint runs the same search, so every
+    shipped level stays Hint-fast. Measured slow: Microban 78, 114, 133.
+
+levels.js records the original Microban number for every entry
+(`source: "Microban N"`); `id` is the in-game campaign number (1..103).
+
+Verification
+------------
+
+Every shipped puzzle is verified solvable by validate.js, and each stored
+solution is replayed through the real engine before the level is accepted.
