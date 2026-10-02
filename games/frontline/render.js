@@ -1,5 +1,5 @@
 import { W, H, WEAPONS, LANES, ENEMIES } from "./content.js";
-import { formation } from "./engine.js";
+import { VISIBLE_SCOUTS, formation } from "./engine.js";
 const INK = "#101727";
 export class Renderer {
   constructor(canvas) {
@@ -989,6 +989,15 @@ export class Renderer {
       formation(g.squad).forEach((p, i) =>
         this.soldier(g.x + p.x, 649 + p.y, i, g.flash > 0, g.weapon, g.time),
       );
+    if (g.squad > VISIBLE_SCOUTS) {
+      // Switch sides near the road edge, with hysteresis to avoid center jitter.
+      if (g.x > 260) this.reserveSide = -1;
+      else if (g.x < 160 || !this.reserveSide) this.reserveSide = 1;
+      const x = g.x + this.reserveSide * 118;
+      const label = `+${g.squad - VISIBLE_SCOUTS}`;
+      this.box(x - 41, 692, 82, 25, 7, "#0b182dee", "#64edff66", 1);
+      this.text(label, x, 710, Math.min(15, 112 / label.length), "#c3f6ff");
+    }
     // Small rally marker shows exactly where supply collection is measured.
     this.line(
       [

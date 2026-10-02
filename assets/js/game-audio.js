@@ -115,7 +115,7 @@
     gain.connect(dest);
     osc.start(t0);
     osc.stop(t0 + dur + 0.02);
-    trackVoice(c, osc);
+    trackVoice(c, osc, [gain]);
     return osc;
   }
 
@@ -140,14 +140,19 @@
     gain.connect(dest);
     src.start(t0);
     src.stop(t0 + dur + 0.05);
-    trackVoice(c, src);
+    trackVoice(c, src, [filt, gain]);
     return src;
   }
 
-  function trackVoice(c, src) {
+  function trackVoice(c, src, nodes) {
     activeVoices += 1;
+    var ended = false;
     src.onended = function () {
+      if (ended) return;
+      ended = true;
       activeVoices = Math.max(0, activeVoices - 1);
+      src.disconnect();
+      (nodes || []).forEach(function (node) { node.disconnect(); });
     };
   }
 
@@ -628,6 +633,97 @@
     }
   };
 
+  /* --- Signal Stack: short relay transients, no music. ----------------------- */
+  var ssVoices = new Set();
+  var ssKeys = ["ss.connect", "ss.land", "ss.perfect", "ss.slip", "ss.miss", "ss.integrity", "ss.lost"];
+  function ssTrack(source) {
+    ssVoices.add(source);
+    var ended = source.onended;
+    source.onended = function () { ended(); ssVoices.delete(source); };
+  }
+  function ssTone(c, d, t, f, end, duration, peak) {
+    ssTrack(tone(c, d, t, f, end, duration, peak, "sine"));
+  }
+  function ssNoise(c, d, t, duration, peak, f, end) {
+    ssTrack(noise(c, d, t, duration, peak, "bandpass", f, end, 0.8));
+  }
+  function ssPlay(key, recipe) {
+    // Only an explicit gesture unlocks this game's context. Never enqueue
+    // suspended-context cues for a later foreground/autoplay burst.
+    recipes[key] = recipe;
+    if (!ctx || ctx.state !== "running" || global.document.hidden) return;
+    play(key, 70, recipe);
+  }
+  var SS = {
+    unlock: function () {
+      var c = ensureCtx();
+      if (!c) return Promise.resolve(false);
+      try {
+        return (c.state === "running" ? Promise.resolve() : c.resume())
+          .then(function () { return c.state === "running"; }, function () { return false; });
+      } catch (e) { return Promise.resolve(false); }
+    },
+    connect: function () {
+      ssPlay("ss.connect", function (c, d, t) {
+        ssTone(c, d, t, 110, 82, .14, .11);
+        ssTone(c, d, t + .015, 880, 880, .08, .065);
+        ssTone(c, d, t + .08, 1320, 1320, .14, .045);
+      });
+    },
+    land: function () {
+      ssPlay("ss.land", function (c, d, t) {
+        ssTone(c, d, t, 135, 58, .13, .17);
+        ssNoise(c, d, t, .025, .075, 1900, 1000);
+        ssTone(c, d, t + .012, 740, 740, .065, .035);
+      });
+    },
+    perfect: function (combo) {
+      var pitch = Math.pow(2, Math.min(7, Math.max(0, (Number(combo) || 1) - 1)) / 24);
+      ssPlay("ss.perfect", function (c, d, t) {
+        ssTone(c, d, t, 145, 62, .16, .18);
+        ssNoise(c, d, t, .02, .065, 2200, 1400);
+        ssTone(c, d, t + .012, 1100 * pitch, 1100 * pitch, .13, .085);
+        ssTone(c, d, t + .07, 1650 * pitch, 1650 * pitch, .22, .048);
+      });
+    },
+    slip: function () {
+      ssPlay("ss.slip", function (c, d, t) {
+        ssNoise(c, d, t, .11, .10, 1800, 430);
+        ssTone(c, d, t, 170, 95, .12, .065);
+      });
+    },
+    miss: function () {
+      ssPlay("ss.miss", function (c, d, t) {
+        ssTone(c, d, t, 310, 95, .20, .065);
+        ssNoise(c, d, t, .10, .045, 720, 220);
+      });
+    },
+    integrity: function () {
+      ssPlay("ss.integrity", function (c, d, t) {
+        ssTone(c, d, t, 190, 100, .13, .085);
+        ssTone(c, d, t + .065, 420, 280, .10, .035);
+      });
+    },
+    lost: function () {
+      ssPlay("ss.lost", function (c, d, t) {
+        ssTone(c, d, t, 95, 42, .30, .16);
+        ssTone(c, d, t, 660, 165, .26, .045);
+        ssNoise(c, d, t + .02, .20, .04, 1100, 180);
+      });
+    },
+    stop: function () {
+      ssVoices.forEach(function (source) {
+        try { source.stop(); } catch (e) {}
+        source.onended();
+      });
+      ssKeys.forEach(function (key) { delete lastPlayed[key]; });
+    },
+    diagnostics: function () {
+      return { voices: ssVoices.size, contextState: ctx ? ctx.state : "uncreated",
+        cueKeys: ssKeys.filter(function (key) { return !!recipes[key]; }).length };
+    }
+  };
+
   /* --- public API ------------------------------------------------------------ */
 
   var GameAudio = {
@@ -672,7 +768,8 @@
     rt: RT,
     cs: CS,
     g2048: G2,
-    sd: SD
+    sd: SD,
+    ss: SS
   };
 
   global.GameAudio = GameAudio;

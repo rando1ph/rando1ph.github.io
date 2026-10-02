@@ -22,6 +22,7 @@ import { dirname, join } from "path";
 const require = createRequire(import.meta.url);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const E = require(join(__dirname, "sudoku-engine.js"));
+const { findAnswerErrors } = require(join(__dirname, "sudoku.js"));
 
 const PER = Number(process.argv[2] || 100);
 
@@ -60,6 +61,29 @@ const puzzle = toBoard(PUZZLE);
 check("known puzzle valid (no conflicts)", E.findConflicts(puzzle) === null);
 check("known puzzle unique", E.countSolutions(puzzle, 2) === 1);
 check("known puzzle solve matches solution", E.boardsEqual(E.solve(puzzle), solved));
+
+/* --- answer checking (independent of rule conflicts) ---------------- */
+const given = puzzle.map(Boolean);
+const entries = puzzle.slice();
+const answerErrors = () => findAnswerErrors(entries, solved, given);
+check("Check ignores empty editable cells", answerErrors().length === 0);
+entries[0] = 1; /* Even a mismatched given must be excluded. */
+check("Check ignores given clues", answerErrors().length === 0);
+entries[0] = puzzle[0];
+entries[2] = solved[2];
+check("Check ignores correct player values", answerErrors().length === 0);
+entries[2] = 1;
+check("wrong-answer fixture is locally legal", E.findConflicts(entries) === null);
+check("Check catches a wrong but locally legal value", JSON.stringify(answerErrors()) === "[2]");
+entries[2] = 5;
+check("conflicting-answer fixture has a rule conflict", !!E.findConflicts(entries)[2]);
+check("Check catches a wrong conflicting value", JSON.stringify(answerErrors()) === "[2]");
+entries[3] = 1;
+entries[5] = 2;
+entries[6] = solved[6];
+const beforeCheck = JSON.stringify([entries, solved, given]);
+check("Check reports all mistakes and only mistakes", JSON.stringify(answerErrors()) === "[2,3,5]");
+check("Check leaves all input arrays unchanged", JSON.stringify([entries, solved, given]) === beforeCheck);
 
 /* --- multiple solutions --------------------------------------------- */
 const empty = E.emptyBoard();

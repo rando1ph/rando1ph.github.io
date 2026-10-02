@@ -10,6 +10,20 @@
 (function () {
   "use strict";
 
+  function findAnswerErrors(values, solution, given) {
+    var errors = [];
+    for (var i = 0; i < values.length; i += 1) {
+      if (!given[i] && values[i] !== 0 && values[i] !== solution[i]) errors.push(i);
+    }
+    return errors;
+  }
+
+  /* Keep the answer comparison testable without loading the UI. */
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = { findAnswerErrors: findAnswerErrors };
+  }
+  if (typeof window === "undefined") return;
+
   var E = window.SudokuEngine;
   var root = document.querySelector(".sd");
   if (!E || !root) return;
@@ -40,6 +54,7 @@
   var eraseBtn = root.querySelector("[data-sd-erase]");
   var undoBtn = root.querySelector("[data-sd-undo]");
   var hintBtn = root.querySelector("[data-sd-hint]");
+  var checkBtn = root.querySelector("[data-sd-check]");
   var restartBtn = root.querySelector("[data-sd-restart]");
   var newBtns = [
     root.querySelector("[data-sd-new-bar]"),
@@ -93,6 +108,10 @@
   var workerBroken = false;
   var msgId = 0;
   var pendingMsgs = {};
+  /* UI-only: never included in saves or Undo snapshots. */
+  var checkErrors = [];
+  var checkTimer = null;
+  var CHECK_DURATION = 900; /* Matches 300ms × 3 CSS pulses. */
 
   function rowOf(i) {
     return E.rowOf(i);
@@ -332,13 +351,16 @@
      ------------------------------------------------------------------ */
 
   function showPanel(name) {
+    clearCheck();
     overlay.hidden = false;
     Object.keys(panels).forEach(function (k) {
       panels[k].hidden = k !== name;
     });
+    setControlsDisabled(state.generating);
   }
   function hideOverlay() {
     overlay.hidden = true;
+    setControlsDisabled(state.generating);
   }
   function setGenerating(on) {
     state.generating = on;
@@ -351,16 +373,20 @@
     setControlsDisabled(on);
   }
   function setControlsDisabled(on) {
+    var gameplayDisabled = on || state.completed || !overlay.hidden;
     diffBtns.forEach(function (b) {
       b.disabled = on;
     });
     Object.keys(padKeys).forEach(function (d) {
-      padKeys[d].disabled = on;
+      padKeys[d].disabled = gameplayDisabled;
     });
-    [notesBtn, eraseBtn, hintBtn, restartBtn, newBtns[0]].forEach(function (b) {
+    [notesBtn, eraseBtn, hintBtn, checkBtn].forEach(function (b) {
+      if (b) b.disabled = gameplayDisabled;
+    });
+    [restartBtn, newBtns[0]].forEach(function (b) {
       if (b) b.disabled = on;
     });
-    undoBtn.disabled = on || state.undoStack.length === 0;
+    undoBtn.disabled = gameplayDisabled || state.undoStack.length === 0;
   }
   function askConfirm(title, note, label, onConfirm) {
     confirmAction = onConfirm;
@@ -466,6 +492,7 @@
       if (state.given[i]) cell.classList.add("is-given");
       else if (v) cell.classList.add("is-entry");
       if (state.conflict && state.conflict[i]) cell.classList.add("is-conflict");
+      if (checkErrors.indexOf(i) !== -1) cell.classList.add("is-check-error");
       if (hintSet && hintSet.indexOf(i) !== -1) cell.classList.add("is-hint");
       if (sel !== null) {
         if (i === sel) cell.classList.add("is-sel");
@@ -498,7 +525,7 @@
 
     renderPad();
     hintsEl.textContent = String(state.hintCount);
-    undoBtn.disabled = state.generating || state.undoStack.length === 0;
+    setControlsDisabled(state.generating);
   }
 
   function renderPad() {
@@ -581,6 +608,7 @@
   }
 
   function commit() {
+    clearCheck();
     clearHint();
     recomputeConflict();
     render();
@@ -653,6 +681,7 @@
   function undo() {
     if (state.generating || state.completed) return;
     if (!state.undoStack.length) return;
+    clearCheck();
     var s = state.undoStack.pop();
     state.values = s.values;
     state.notes = s.notes;
@@ -670,6 +699,38 @@
     notesBtn.setAttribute("aria-pressed", state.notesMode ? "true" : "false");
     feedback(state.notesMode ? "Notes on — digits toggle pencil marks." : "Notes off.");
     saveState();
+  }
+
+  /* ------------------------------------------------------------------
+     Check — compare existing entries, without changing gameplay state
+     ------------------------------------------------------------------ */
+
+  function clearCheck() {
+    clearTimeout(checkTimer);
+    checkTimer = null;
+    checkErrors.forEach(function (i) {
+      cells[i].classList.remove("is-check-error");
+    });
+    checkErrors = [];
+  }
+
+  function doCheck() {
+    if (state.generating || state.completed || !state.solution || !overlay.hidden) return;
+    clearCheck();
+    checkErrors = findAnswerErrors(state.values, state.solution, state.given);
+    if (checkErrors.length) {
+      /* Flush removal so another Check restarts the CSS animation cleanly. */
+      void board.offsetWidth;
+      checkErrors.forEach(function (i) {
+        cells[i].classList.add("is-check-error");
+      });
+      checkTimer = setTimeout(clearCheck, CHECK_DURATION);
+    }
+    var count = checkErrors.length;
+    var text = count ? count + (count === 1 ? " mistake found." : " mistakes found.") :
+      "No mistakes so far.";
+    feedback(text, count ? "warn" : "");
+    announce(text);
   }
 
   /* ------------------------------------------------------------------
@@ -733,6 +794,7 @@
      ------------------------------------------------------------------ */
 
   function complete() {
+    clearCheck();
     var total = elapsedMs();
     state.completed = true;
     state.elapsedBase = total;
@@ -761,6 +823,7 @@
   }
 
   function restart(force) {
+    clearCheck();
     if (!force && hasProgress()) {
       askConfirm("Restart puzzle?", "Your entries and notes will be cleared.", "Restart", function () {
         restart(true);
@@ -785,6 +848,7 @@
   }
 
   function applyPuzzle(result) {
+    clearCheck();
     state.difficulty = result.difficulty;
     state.generatorVersion = result.generatorVersion;
     state.seed = result.seed;
@@ -907,6 +971,7 @@
   eraseBtn.addEventListener("click", erase);
   undoBtn.addEventListener("click", undo);
   hintBtn.addEventListener("click", doHint);
+  checkBtn.addEventListener("click", doCheck);
   restartBtn.addEventListener("click", function () {
     restart(false);
   });
@@ -997,9 +1062,15 @@
     }
   });
 
-  window.addEventListener("pagehide", saveState);
+  window.addEventListener("pagehide", function () {
+    clearCheck();
+    saveState();
+  });
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "hidden") saveState();
+    if (document.visibilityState === "hidden") {
+      clearCheck();
+      saveState();
+    }
   });
 
   /* ------------------------------------------------------------------

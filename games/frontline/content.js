@@ -7,7 +7,7 @@ export const WEAPONS = [
     name: "PULSE",
     interval: 0.44,
     damage: 1,
-    speed: 1040,
+    speed: 1352,
     spread: [0],
     color: "#64edff",
   },
@@ -15,7 +15,7 @@ export const WEAPONS = [
     name: "REPEATER",
     interval: 0.24,
     damage: 1.25,
-    speed: 1420,
+    speed: 1846,
     spread: [0],
     color: "#9bffdc",
   },
@@ -23,16 +23,16 @@ export const WEAPONS = [
     name: "TRIDENT",
     interval: 0.42,
     damage: 1.15,
-    speed: 1160,
-    spread: [-0.1, 0, 0.1],
+    speed: 1508,
+    spread: [-0.06, 0, 0.06],
     color: "#ffdc86",
   },
 ];
 export const ENEMIES = {
-  grunt: { hp: 6, speed: 49, radius: 18, hurt: 2, points: 30 },
-  runner: { hp: 4, speed: 92, radius: 14, hurt: 2, points: 40 },
-  brute: { hp: 48, speed: 32, radius: 31, hurt: 4, points: 100 },
-  elite: { hp: 75, speed: 40, radius: 26, hurt: 4, points: 180 },
+  grunt: { hp: 6, speed: 69, radius: 18, hurt: 2, breach: 1, points: 30 },
+  runner: { hp: 4, speed: 120, radius: 14, hurt: 2, breach: 1, points: 40 },
+  brute: { hp: 48, speed: 44, radius: 31, hurt: 4, breach: 2, points: 100 },
+  elite: { hp: 75, speed: 56, radius: 26, hurt: 4, breach: 2, points: 180 },
 };
 export function random(seed) {
   let s = seed >>> 0;
@@ -194,7 +194,7 @@ export const BLOCKS = {
     tags: ["recovery"],
   },
 };
-// Preserve the ten sector identities; introduce V2 interactions progressively.
+// Preserve the ten sector identities and introduce roles progressively.
 export const LEVELS = [
   {
     name: "First light",
@@ -395,9 +395,11 @@ export const LEVELS = [
 ];
 export function pacing(band = 0, phase = 0.5) {
   return {
-    enemySpeed: 1 + Math.min(0.3, band * 0.035) + phase * 0.12,
+    enemySpeed:
+      1 + Math.min(0.7, band * 0.045) +
+      Math.min(0.35, Math.max(0, band - 12) * 0.008) + phase * 0.12,
     objectSpeed: 80 + Math.min(14, band * 1.8),
-    interval: Math.max(3.5, 6.3 - band * 0.32),
+    interval: 2.4 + 2.5 / (1 + band * 0.25),
     budget: Math.min(22, 3 + band * 3),
   };
 }
@@ -424,20 +426,29 @@ export function encounter(
       : slot.split("+").map((kind, layer) => pack(kind, 1, 1, layer * 105));
     for (const layer of layers) {
       let kind = layer.kind;
+      // Later reserves must keep investing fire in threats, even in supply lanes.
+      if (
+        kind === "squad" && !block.tags.includes("recovery") && band > 12 &&
+        rng() < 0.65 * (band - 12) / (band + 12)
+      ) kind = "amplifier";
       if (ENEMIES[kind] && !pool.includes(kind)) kind = pool[0];
       const enemy = !!ENEMIES[kind];
-      const count =
-        layer.min +
-        Math.floor(rng() * (layer.max - layer.min + 1)) +
-        (enemy && kind === "grunt" && block.tags.includes("horde")
-          ? Math.min(2, Math.floor(band / 4))
-          : 0);
+      const horde = block.tags.includes("horde");
+      const baseCount = layer.min + Math.floor(rng() * (layer.max - layer.min + 1)) +
+        (enemy && kind === "grunt" && horde ? Math.min(2, Math.floor(band / 4)) : 0);
+      // Most extra pressure is mobile infantry, not duplicated heavy HP pools.
+      const density = horde ? 1.85 + 0.35 * band / (band + 24) : 1.5;
+      const count = enemy && ["grunt", "runner"].includes(kind)
+        ? Math.round(baseCount * density) : baseCount;
       for (let n = 0; n < count; n++) {
+        if (enemy && items.filter((p) => ENEMIES[p.kind]).length >= 24) break;
+        const role = kind === "grunt" && pool.includes("runner") && band > 12 &&
+          rng() < 0.4 * (band - 12) / (band + 12) ? "runner" : kind;
         const x =
           LANES[order[i]] +
           (enemy ? ((n % 2) * 2 - 1) * 16 + (rng() - 0.5) * 8 : 0);
         const item = {
-          kind,
+          kind: role,
           x,
           y: -35 - Math.floor(n / 2) * 53 - (layer.offset || 0),
           value:
@@ -451,14 +462,16 @@ export function encounter(
           speed: enemy ? undefined : pace.objectSpeed,
         };
         if (kind === "amplifier") {
-          const variant = options.intro
-            ? "mild"
-            : ["mild", "deep", "positive"][Math.floor(rng() * 3)];
+          const roll = rng();
+          const late = Math.max(0, band - 12) / (band + 12);
+          const variant = options.intro ? "mild"
+            : roll < 1 / 3 - late * 0.2 ? "positive"
+            : roll < 2 / 3 - late * 0.25 ? "mild" : "deep";
           item.value =
             variant === "positive"
               ? 2 + Math.floor(rng() * 2)
               : variant === "deep"
-                ? -(10 + Math.floor(rng() * 5))
+                ? -Math.min(16, 10 + Math.floor(rng() * 5) + Math.floor(late * 3))
                 : -(4 + Math.floor(rng() * 4));
           item.minValue = -16;
           item.maxValue =
@@ -489,23 +502,23 @@ export function encounter(
 export function campaign(seed, level = 0) {
   const spec = LEVELS[level],
     rng = random(seed);
-  // Build -> tighten -> recover -> surge. Nonuniform gaps replace V1's flat spacing.
+  // Pressure starts immediately; short gaps let packs overlap, with brief recovery beats.
   const weights = spec.skeleton.map((key, i) =>
     i < 2
-      ? 1.35
+      ? 1
       : key === "supply"
-        ? 1.05
+        ? 1.15
         : i > spec.skeleton.length * 0.6
           ? 0.78
           : 1,
   );
   const total = weights.slice(1).reduce((a, b) => a + b, 0),
-    window = spec.duration - 17;
+    window = (spec.duration - 17) * (0.76 - level * 0.012);
   let at = 1;
-  return spec.skeleton.map((key, i) => {
+  const schedule = spec.skeleton.map((key, i) => {
     if (i) at += (weights[i] / total) * (window - 1);
     const phase = i / (spec.skeleton.length - 1),
-      band = (level * 0.55 + phase * 1.5) * (i < 2 ? 0.25 : 1);
+      band = level * 0.7 + phase * 2;
     return {
       at,
       ...encounter(key, rng() * 4294967296, band, spec.pool, {
@@ -515,10 +528,11 @@ export function campaign(seed, level = 0) {
       }),
     };
   });
+  return schedule;
 }
 export function endlessEncounter(seed, wave, time) {
   const rng = random(seed),
-    band = Math.min(12, Math.floor(time / 32)),
+    band = Math.floor(time / 32),
     pace = pacing(band);
   const hordes = Object.keys(BLOCKS).filter(
     (k) =>
@@ -536,7 +550,7 @@ export function endlessEncounter(seed, wave, time) {
   else if (wave % 5 === 4) key = "recovery";
   else if (
     hordes.length &&
-    (wave % 5 === 3 || rng() < Math.min(0.65, 0.22 + band * 0.055))
+    (wave % 5 === 3 || rng() < 0.22 + 0.76 * band / (band + 8))
   )
     key = hordes[Math.floor(rng() * hordes.length)];
   else key = choices[Math.floor(rng() * choices.length)];

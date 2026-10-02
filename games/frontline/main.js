@@ -48,9 +48,8 @@ function load() {
         m &&
         Number.isFinite(m.time) &&
         m.time > 0 &&
-        Number.isInteger(m.survivors) &&
-        m.survivors >= 0 &&
-        m.survivors <= 60
+        Number.isSafeInteger(m.survivors) &&
+        m.survivors >= 0
       )
         mastery[i] = { time: m.time, survivors: m.survivors };
     }
@@ -163,7 +162,7 @@ function start(mode = "campaign", seed) {
   // A gesture starts audio, including when the first shot is scheduled later.
   cue("pickup");
   $("notice").textContent =
-    "Squad deployed. Drag to steer. Shoot amplifiers to raise their value; break sealed crates before collecting.";
+    "Squad deployed. Drag to steer. Red amplifiers cost scouts at the line. Shoot to zero; collect positives. Break sealed crates.";
   hud();
 }
 function pause() {
@@ -230,7 +229,7 @@ function hud() {
   if (screen === "game")
     $("hint").textContent =
       game.time < 12
-        ? "SUPPLY: COLLECT · AMPLIFIER: SHOOT +1"
+        ? "RED: SHOOT TO ZERO · POSITIVE: COLLECT"
         : game.boss
           ? "DODGE THE MARKED LANE"
           : game.mode === "endless"

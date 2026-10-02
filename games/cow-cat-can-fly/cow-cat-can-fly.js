@@ -28,9 +28,9 @@
   var CAT_HIT_W = 24;   /* fits the round head; ears + cheek edges forgiven */
   var CAT_HIT_H = 22;
 
-  var GRAVITY = 1450;      /* px/s^2 */
-  var FLAP_VY = -460;      /* px/s   */
-  var MAX_FALL = 620;      /* px/s — terminal velocity via linear drag */
+  var GRAVITY = 1050;      /* px/s^2 */
+  var FLAP_VY = -340;      /* px/s   */
+  var MAX_FALL = 420;      /* px/s — terminal velocity via linear drag */
   var DRAG_K = GRAVITY / MAX_FALL; /* 1/s — a = g - k·v */
   var CEIL_Y = 14;
 
@@ -41,16 +41,16 @@
   var TOP_MARGIN = 34;
   var BOT_MARGIN = 26;
 
-  /* Difficulty curve — smooth, capped. score -> params */
-  function diffAt(score) {
-    var s = Math.max(0, Math.min(score, 45));
-    var t = s / 45;
+  /* Difficulty follows passed towers only; bonus points never affect flight. */
+  function diffAt(progress) {
+    var s = Math.max(0, Math.min(progress, 80));
+    var t = s / 80;
     var e = t * t * (3 - 2 * t); /* smoothstep */
     return {
-      speed: 132 + 68 * e,        /* 132 -> 200 px/s   */
-      gap: 168 - 46 * e,          /* 168 -> 122 px     */
-      spacing: 224 - 44 * e,      /* 224 -> 180 px     */
-      maxDelta: 150 - 30 * e      /* 150 -> 120 px     */
+      speed: 114 + 58 * e,        /* 114 -> 172 px/s */
+      gap: 204 - 48 * e,          /* 204 -> 156 px   */
+      spacing: 264 - 34 * e,      /* 264 -> 230 px   */
+      maxDelta: 72 + 18 * e       /* 72 -> 90 px     */
     };
   }
 
@@ -84,13 +84,92 @@
     };
   }
 
+  /* Exact linear-drag integration, shared by gameplay and headless checks. */
+  function advanceFlight(body, dt) {
+    var e = Math.exp(-DRAG_K * dt);
+    body.cy += MAX_FALL * dt + (body.vy - MAX_FALL) * (1 - e) / DRAG_K;
+    body.vy = MAX_FALL + (body.vy - MAX_FALL) * e;
+  }
+
+  function hitsPipe(cy, p) {
+    var cr = catRect(cy);
+    var top = p.center - p.gap / 2;
+    var bottom = p.center + p.gap / 2;
+    return aabb(cr.x, cr.y, cr.w, cr.h, p.x, 0, OBST_W, top) ||
+      aabb(cr.x, cr.y, cr.w, cr.h, p.x, bottom, OBST_W, GROUND_Y - bottom);
+  }
+
+  function createScore() { return { pipesPassed: 0, bonusScore: 0, score: 0 }; }
+
+  function passPipe(run, pipe, cy) {
+    if (pipe.scored || pipe.x + OBST_W >= catRect(cy).x) { return false; }
+    pipe.scored = true;
+    run.pipesPassed += 1;
+    run.score = run.pipesPassed + run.bonusScore;
+    return true;
+  }
+
+  /* At most one pickup per pair, with 1–3 empty pairs between rewards.
+     Local seeded RNG cannot consume or change tower-geometry randomness. */
+  function makePickup(pipe, cadence) {
+    var rng = mulberry(pipe.seed ^ 0x51f15e);
+    if (cadence.empty === 0 || (cadence.empty < 3 && rng() >= 0.42)) {
+      cadence.empty += 1;
+      return null;
+    }
+    cadence.empty = 0;
+    var kind = rng() < 0.22 ? "treat" : "food";
+    var offset = kind === "food" ? (rng() * 2 - 1) * 18 :
+      (rng() < 0.5 ? -1 : 1) * (28 + rng() * 10);
+    var limit = Math.max(0, pipe.gap / 2 - 40);
+    return { kind: kind, y: pipe.center + Math.max(-limit, Math.min(limit, offset)), collected: false };
+  }
+
+  function collectPickup(run, pipe, cy) {
+    var item = pipe.pickup;
+    if (!item || item.collected) { return 0; }
+    var cr = catRect(cy);
+    var x = pipe.x + OBST_W / 2;
+    var dx = x - Math.max(cr.x, Math.min(cr.x + cr.w, x));
+    var dy = item.y - Math.max(cr.y, Math.min(cr.y + cr.h, item.y));
+    /* 15px radius around 20x16 / 16x16 art forgives grazing touches. */
+    if (dx * dx + dy * dy > 15 * 15) { return 0; }
+    item.collected = true;
+    var value = item.kind === "treat" ? 2 : 1;
+    run.bonusScore += value;
+    run.score = run.pipesPassed + run.bonusScore;
+    return value;
+  }
+
+  function parseStore(raw) {
+    var out = { best: 0, runs: 0 };
+    try {
+      var v = JSON.parse(raw);
+      ["best", "runs"].forEach(function (key) {
+        var n = Number(v && v[key]);
+        if (Number.isSafeInteger(n) && n >= 0) { out[key] = n; }
+      });
+    } catch (e) { /* malformed / unavailable — defaults */ }
+    return out;
+  }
+
+  function recordRun(saved, total) {
+    saved.runs += 1;
+    var better = total > saved.best;
+    if (better) { saved.best = total; }
+    return better;
+  }
+
   var CORE = {
     W: W, H: H, GROUND_H: GROUND_H, GROUND_Y: GROUND_Y, OBST_W: OBST_W,
     CAT_X: CAT_X, GRAVITY: GRAVITY, FLAP_VY: FLAP_VY, MAX_FALL: MAX_FALL,
     DRAG_K: DRAG_K, DT_CLAMP: DT_CLAMP, RESTART_GUARD: RESTART_GUARD,
     TOP_MARGIN: TOP_MARGIN, BOT_MARGIN: BOT_MARGIN,
     diffAt: diffAt, nextGapCenter: nextGapCenter,
-    aabb: aabb, catRect: catRect
+    aabb: aabb, catRect: catRect, hitsPipe: hitsPipe, advanceFlight: advanceFlight,
+    createScore: createScore, passPipe: passPipe, makePickup: makePickup,
+    collectPickup: collectPickup, parseStore: parseStore, recordRun: recordRun,
+    mulberry: mulberry
   };
 
   if (typeof module !== "undefined" && module.exports) {
@@ -136,15 +215,8 @@
   var STORE_KEY = "randolf:cow-cat-can-fly:v1";
 
   function loadStore() {
-    var out = { best: 0, runs: 0 };
-    try {
-      var raw = window.localStorage.getItem(STORE_KEY);
-      if (!raw) { return out; }
-      var v = JSON.parse(raw);
-      out.best = Math.max(0, parseInt(v && v.best, 10) || 0);
-      out.runs = Math.max(0, parseInt(v && v.runs, 10) || 0);
-    } catch (e) { /* malformed / unavailable — defaults */ }
-    return out;
+    try { return parseStore(window.localStorage.getItem(STORE_KEY)); }
+    catch (e) { return parseStore(null); }
   }
 
   function saveStore() {
@@ -282,6 +354,12 @@
           tone(c, t + 0.07, 1319, 1319, 0.09, 0.075, "sine");
         });
       },
+      pickup: function (value) {
+        play("cc.pickup", 80, function (c, t) {
+          tone(c, t, 1175, 1568, 0.09, 0.065, "triangle");
+          if (value === 2) { tone(c, t + 0.07, 1760, 2093, 0.12, 0.05, "sine"); }
+        });
+      },
       hit: function () {
         play("cc.hit", 150, function (c, t) {
           tone(c, t, 165, 55, 0.17, 0.22, "sine");
@@ -319,84 +397,42 @@
     G: "#b9e34b",
     K: "#14141c",
     P: "#e78ba0",
-    A: "rgba(245,245,240,0.5)"
+    A: "rgba(245,245,240,0.5)",
+    B: "#77c9d4", C: "#daf4ed", T: "#b98150",
+    H: "#f4d69b", L: "#fff1cf", R: "#d7a180"
   };
 
   var OUTLINE = "#50536a";
 
-  /* 20 x 18 grids — a floating British Shorthair cow-cat HEAD.
-     scale x2 -> 40x36 logical px, nearest-neighbour.
-     BSH traits: very round broad face, chubby cheeks, small rounded
-     ears, short muzzle, large wide-set round eyes. Cow pattern:
-     big irregular black patch over the left forehead/eye side,
-     smaller black patch on the right cheek, black left ear,
-     black-tipped right ear, white muzzle, pink nose.
-     A moonlit 1px outline is added automatically. */
-
+  /* 20x18, rendered at integer 2x (40x36). Original mirrored portrait:
+     small dark ears, round full cheeks, balanced black crown/side framing,
+     white blaze and short muzzle. All frames retain the same facial pixels. */
   var SPR_GLIDE = [
-    "....FF........FF....",
-    "...FFFF......WWWW...",
-    "...FFFFWWWWWWWWWW...",
-    "..WFFFFWWWWWWWWWWW..",
-    "..FFFFFWWWWWWWWWWW..",
-    ".WFFFFFFWWWWWWWWWWW.",
-    ".WFFFWWWWWWWWWWWWWW.",
-    ".WFFFKKKWWWWKKKWWWW.",
-    ".WFFFKWKWWWWKWKWWWW.",
-    ".WFFFKKKWWWWKKKWWWW.",
-    ".WFWWWWWWWWWWWWFFFW.",
-    ".WWWWWWWWPPWWWWWFFW.",
-    ".WWWWWWWKWWKWWWWWFW.",
-    ".WDDWWWWWWWWWWWWDDW.",
-    "..WWDDWWWWWWWWDDWW..",
-    ".....WDDWWWWDDW.....",
-    ".......DDDDDD.......",
-    "...................."
-  ];
-
-  var SPR_FLAP = [
     "....................",
-    "...FFFF......WWWW...",
-    "...FFFFWWWWWWWWWW...",
-    "..WFFFFWWWWWWWWWWW..",
-    "..FFFFFWWWWWWWWWWW..",
-    ".WFFFFFFWWWWWWWWWWW.",
-    ".WFFFWWWWWWWWWWWWWW.",
-    ".WFFFKKKWWWWKKKWWWW.",
-    ".WFFFKWKWWWWKWKWWWW.",
-    ".WFFFKKKWWWWKKKWWWW.",
-    ".WFWWWWWWWWWWWWFFFW.",
-    ".WWWWWWWWPPWWWWWFFW.",
-    ".WWWWWWWKWWKWWWWWFW.",
-    ".WDDWWWWWWWWWWWWDDW.",
-    "..WWDDWWWWWWWWDDWW..",
-    ".....WDDWWWWDDW.....",
-    "......AA....AA......",
+    "...FF..........FF...",
+    "..FFFF........FFFF..",
+    "..FPFFFFFFFFFFFFPF..",
+    "..FFFFFFFWWFFFFFFF..",
+    ".FFFFFFFWWWWFFFFFFF.",
+    ".FFFFFFWWWWWWFFFFFF.",
+    ".FFFKGGKWWWWKGGKFFF.",
+    ".FFFGWKGWWWWGKWGFFF.",
+    ".FWWGKKGWWWWGKKGWWF.",
+    ".WWWKGGKWWWWKGGKWWW.",
+    ".WWWWWWWWPPWWWWWWWW.",
+    ".WWWWWWWKWWKWWWWWWW.",
+    ".DWWWWWWWWWWWWWWWWD.",
+    "..DWWWWWWWWWWWWWWD..",
+    "...DDWWWWWWWWWWDD...",
+    ".....DDDDDDDDDD.....",
     "...................."
   ];
+  var SPR_FLAP = SPR_GLIDE.slice();
+  SPR_FLAP[17] = "....AA........AA....";
+  var SPR_DIVE = SPR_GLIDE.slice();
+  SPR_DIVE[0] = ".....AA......AA.....";
 
-  var SPR_DIVE = [
-    "....................",
-    "...FFFF......WWWW...",
-    "...FFFFWWWWWWWWWW...",
-    "..WFFFFWWWWWWWWWWW..",
-    "..FFFFFWWWWWWWWWWW..",
-    ".WFFFFFFWWWWWWWWWWW.",
-    ".WFFFWWWWWWWWWWWWWW.",
-    ".WFFFKKKWWWWKKKWWWW.",
-    ".WFFFKWKWWWWKWKWWWW.",
-    ".WFFFKKKWWWWKKKWWWW.",
-    ".WFWWWWWWWWWWWWFFFW.",
-    ".WWWWWWWWPPWWWWWFFW.",
-    ".WWWWWWWKWWKWWWWWFW.",
-    ".WDDWWWWWWWWWWWWDDW.",
-    "..WWDDWWWWWWWWDDWW..",
-    ".....WDDWWWWDDW.....",
-    ".......DDDDDD.......",
-    "...................."
-  ];
-
-  function makeSprite(grid) {
+  function makeSprite(grid, outlined) {
     var h = grid.length;
     var w = grid[0].length;
     /* outline pass at 1px grid resolution */
@@ -404,7 +440,7 @@
     for (var y = 0; y < h; y += 1) {
       solid.push([]);
       for (var x = 0; x < w; x += 1) {
-        solid[y][x] = grid[y].charAt(x) !== ".";
+        solid[y][x] = grid[y].charAt(x) !== "." && grid[y].charAt(x) !== "A";
       }
     }
     var S = 2;
@@ -418,12 +454,12 @@
         if (ch !== ".") {
           g.fillStyle = PAL[ch] || PAL.W;
           g.fillRect(x * S, y * S, S, S);
-        } else if (
+        } else if (outlined !== false && (
           (x > 0 && solid[y][x - 1]) ||
           (x < w - 1 && solid[y][x + 1]) ||
           (y > 0 && solid[y - 1][x]) ||
           (y < h - 1 && solid[y + 1][x])
-        ) {
+        )) {
           g.fillStyle = OUTLINE;
           g.fillRect(x * S, y * S, S, S);
         }
@@ -436,6 +472,17 @@
     glide: makeSprite(SPR_GLIDE),
     flap: makeSprite(SPR_FLAP),
     dive: makeSprite(SPR_DIVE)
+  };
+
+  var PICKUP_SPRITES = {
+    food: makeSprite([
+      "..........", "...T.TT...", "..HTTHTH..", ".CCCCCCCC.",
+      ".BBBBBBBB.", "..BBBBBB..", "...CCCC...", ".........."
+    ], false),
+    treat: makeSprite([
+      "..HHHH..", ".HLLLLH.", "HLLLLLHR", "HLLHLLHR",
+      "HLLLLHHR", "RHHHHHRR", ".RRRRRR.", "........"
+    ], false)
   };
 
   /* 3x5 pixel digit font */
@@ -451,6 +498,7 @@
     ["111", "101", "111", "101", "111"],
     ["111", "101", "111", "001", "111"]
   ];
+  var PLUS_GLYPH = ["000", "010", "111", "010", "000"];
 
   function pixelText(g, str, cx, y, s, color, shadow) {
     var dw = 4 * s; /* 3px glyph + 1px space */
@@ -460,7 +508,7 @@
     function drawPass(ox, oy, col) {
       g.fillStyle = col;
       for (var i = 0; i < str.length; i += 1) {
-        d = DIGITS[+str.charAt(i)];
+        d = str.charAt(i) === "+" ? PLUS_GLYPH : DIGITS[+str.charAt(i)];
         x = x0 + i * dw + ox;
         for (r = 0; r < 5; r += 1) {
           for (cN = 0; cN < 3; cN += 1) {
@@ -637,7 +685,9 @@
 
   var cat = { cy: 330, vy: 0, rot: 0, frame: "glide", animT: 0, flapT: 0 };
   var pipes = [];           /* {x, center, gap, scored, seed} */
-  var score = 0;
+  var run = createScore();
+  var pickupCadence = { empty: 0 };
+  var pickupEffects = []; /* at most four short-lived labels; no particle pool */
   var newBest = false;
   var overT = 0;            /* time since game over */
   var dieT = 0;
@@ -649,11 +699,13 @@
 
   var viewScale = 1;
 
-  function d() { return diffAt(score); }
+  function d() { return diffAt(run.pipesPassed); }
 
   function resetRun() {
     pipes.length = 0;
-    score = 0;
+    run = createScore();
+    pickupCadence.empty = 0;
+    pickupEffects.length = 0;
     newBest = false;
     cat.cy = 330;
     cat.vy = 0;
@@ -667,11 +719,16 @@
     scorePulseT = 0;
   }
 
+  function addPipe(pipe) {
+    pipe.pickup = makePickup(pipe, pickupCadence);
+    pipes.push(pipe);
+  }
+
   function spawnPipesInitial() {
     /* first opening is placed near the cat's flight height — kind start */
-    pipes.push({
+    addPipe({
       x: W + FIRST_PIPE_DELAY,
-      center: 300 + (Math.random() * 2 - 1) * 40,
+      center: 300 + (Math.random() * 2 - 1) * 24,
       gap: d().gap,
       scored: false,
       seed: Math.floor(Math.random() * 1e9)
@@ -699,25 +756,21 @@
     dieT = 0;
     cat.vy = -170;
     shakeT = reduceMotion ? 0 : 0.26;
-    flashT = 0.1;
+    flashT = reduceMotion ? 0 : 0.1;
     Sound.hit();
   }
 
   function finishRun() {
     state = ST.OVER;
     overT = 0;
-    store.runs += 1;
-    if (score > store.best) {
-      store.best = score;
-      newBest = true;
-    }
+    newBest = recordRun(store, run.score);
     saveStore();
     Sound.over();
     if (newBest) {
       Sound.best();
-      announce("New best — " + score);
+      announce("New best — " + run.score);
     } else {
-      announce("Game over — score " + score + ", best " + store.best);
+      announce("Game over — score " + run.score + ", best " + store.best);
     }
   }
 
@@ -726,19 +779,14 @@
      ================================================================ */
 
   function updateCat(dt) {
-    /* Exact closed-form integration of a = g − k·v (linear drag,
-       terminal velocity = g/k). Closed form keeps trajectories
-       equivalent across 30/60/120/144 Hz refresh rates. */
-    var e = Math.exp(-DRAG_K * dt);
-    cat.cy += MAX_FALL * dt + (cat.vy - MAX_FALL) * (1 - e) / DRAG_K;
-    cat.vy = MAX_FALL + (cat.vy - MAX_FALL) * e;
+    advanceFlight(cat, dt);
 
     /* rotation follows velocity */
     var target;
     if (cat.vy < 0) {
-      target = -0.3;
+      target = -0.22;
     } else {
-      target = Math.min(1.25, 0.05 + (cat.vy / MAX_FALL) * 1.2);
+      target = Math.min(0.65, 0.05 + (cat.vy / MAX_FALL) * 0.6);
     }
     var rate = target < cat.rot ? 10 : 6.5;
     cat.rot += (target - cat.rot) * Math.min(1, dt * rate);
@@ -748,7 +796,7 @@
       cat.flapT -= dt;
       cat.frame = "flap";
     } else {
-      cat.frame = cat.vy > 380 ? "dive" : "glide";
+      cat.frame = cat.vy > 280 ? "dive" : "glide";
     }
   }
 
@@ -773,7 +821,7 @@
     var lastP = pipes[pipes.length - 1];
     if (!lastP || lastP.x <= W - dd.spacing) {
       var center = nextGapCenter(lastP ? lastP.center : 300, dd, Math.random);
-      pipes.push({
+      addPipe({
         x: lastP ? lastP.x + dd.spacing : W + FIRST_PIPE_DELAY,
         center: center,
         gap: dd.gap,
@@ -786,22 +834,24 @@
     if (pipes.length && pipes[0].x + OBST_W < -12) { pipes.shift(); }
 
     /* scoring + collision */
-    var cr = catRect(cat.cy);
     for (i = 0; i < pipes.length; i += 1) {
       p = pipes[i];
-      if (!p.scored && p.x + OBST_W < cr.x) {
-        p.scored = true;
-        score += 1;
-        scorePulseT = 0.28;
-        Sound.score();
-        announce("Score " + score);
-      }
-      var gapTop = p.center - p.gap / 2;
-      var gapBot = p.center + p.gap / 2;
-      if (aabb(cr.x, cr.y, cr.w, cr.h, p.x, 0, OBST_W, gapTop) ||
-          aabb(cr.x, cr.y, cr.w, cr.h, p.x, gapBot, OBST_W, GROUND_Y - gapBot)) {
+      if (hitsPipe(cat.cy, p)) {
         die();
         break;
+      }
+      if (passPipe(run, p, cat.cy)) {
+        scorePulseT = 0.28;
+        Sound.score();
+        announce("Score " + run.score);
+      }
+      var value = collectPickup(run, p, cat.cy);
+      if (value) {
+        if (pickupEffects.length >= 4) { pickupEffects.shift(); }
+        pickupEffects.push({ x: p.x + OBST_W / 2, y: p.pickup.y - 24, value: value, age: 0 });
+        scorePulseT = 0.28;
+        Sound.pickup(value);
+        announce((value === 2 ? "Freeze-dried treat, plus 2. " : "Cat food, plus 1. ") + "Score " + run.score);
       }
     }
 
@@ -823,6 +873,10 @@
 
   function update(dt) {
     elapsed += dt;
+    for (var ei = pickupEffects.length - 1; ei >= 0; ei -= 1) {
+      pickupEffects[ei].age += dt;
+      if (pickupEffects[ei].age >= 0.7) { pickupEffects.splice(ei, 1); }
+    }
     if (shakeT > 0) { shakeT -= dt; }
     if (flashT > 0) { flashT -= dt; }
     if (scorePulseT > 0) { scorePulseT -= dt; }
@@ -830,8 +884,8 @@
     if (state === ST.READY) {
       groundScroll += 60 * dt;
       /* gentle float */
-      cat.cy = 330 + Math.sin(elapsed * 2.1) * 7;
-      cat.rot = Math.sin(elapsed * 2.1 + 0.6) * 0.06;
+      cat.cy = 330 + (reduceMotion ? 0 : Math.sin(elapsed * 2.1) * 7);
+      cat.rot = reduceMotion ? 0 : Math.sin(elapsed * 2.1 + 0.6) * 0.06;
       cat.animT += dt;
       /* occasional idle flap */
       if (cat.flapT > 0) {
@@ -873,9 +927,9 @@
     g.globalAlpha = 1;
 
     /* far skyline — 1x drift */
-    drawTile(g, FAR_TILE, (elapsed * 14) % FAR_TILE.width, GROUND_Y - 190);
+    drawTile(g, FAR_TILE, reduceMotion ? 0 : (elapsed * 14) % FAR_TILE.width, GROUND_Y - 190);
     /* near rooftops */
-    drawTile(g, NEAR_TILE, (elapsed * 34) % NEAR_TILE.width, GROUND_Y - 130);
+    drawTile(g, NEAR_TILE, reduceMotion ? 0 : (elapsed * 34) % NEAR_TILE.width, GROUND_Y - 130);
   }
 
   function drawTile(g, tile, offX, y) {
@@ -981,17 +1035,13 @@
   }
 
   function drawCat(g) {
-    var spr = SPRITES[cat.frame] || SPRITES.glide;
-    var q = Math.round(cat.rot / (Math.PI / 12)) * (Math.PI / 12);
+    var spr = reduceMotion ? SPRITES.glide : SPRITES[cat.frame] || SPRITES.glide;
+    var q = reduceMotion ? 0 : Math.round(cat.rot / (Math.PI / 12)) * (Math.PI / 12);
     g.save();
     g.translate(CAT_X, Math.round(cat.cy));
     g.rotate(q);
-    /* tiny squash / stretch — boost stretch, brief hit squash */
-    var sx = 1, sy = 1;
-    if (cat.flapT > 0) { sx = 1.06; sy = 0.93; }
-    if (state === ST.DYING && dieT < 0.25) { sx = 0.92; sy = 0.92; }
-    if (!reduceMotion && (sx !== 1 || sy !== 1)) { g.scale(sx, sy); }
-    g.drawImage(spr, -20, -18);
+    /* Integer sprite scale; preserve the portrait through every flap. */
+    g.drawImage(spr, -spr.width / 2, -spr.height / 2);
     g.restore();
 
     if (DEBUG) {
@@ -1002,10 +1052,36 @@
     }
   }
 
+  function drawPickup(g, pipe) {
+    var item = pipe.pickup;
+    if (!item || item.collected) { return; }
+    var spr = PICKUP_SPRITES[item.kind];
+    var x = Math.round(pipe.x + OBST_W / 2), y = Math.round(item.y);
+    g.drawImage(spr, x - spr.width / 2, y - spr.height / 2);
+    if (item.kind === "treat") {
+      g.globalAlpha = reduceMotion ? 0.8 : 0.65 + 0.35 * Math.sin(elapsed * 4);
+      g.fillStyle = "#fff1cf";
+      g.fillRect(x + 11, y - 9, 2, 6);
+      g.fillRect(x + 9, y - 7, 6, 2);
+      g.globalAlpha = 1;
+    }
+  }
+
+  function drawPickupEffects(g) {
+    for (var i = 0; i < pickupEffects.length; i += 1) {
+      var fx = pickupEffects[i];
+      var y = Math.round(fx.y - (reduceMotion ? 0 : fx.age * 24));
+      g.globalAlpha = Math.min(1, (0.7 - fx.age) / 0.2);
+      pixelText(g, "+" + fx.value, Math.round(fx.x), y, 2,
+        fx.value === 2 ? "#f4d69b" : "#daf4ed", true);
+    }
+    g.globalAlpha = 1;
+  }
+
   function drawHUD(g) {
     if (state === ST.READY) { return; }
     var s = scorePulseT > 0 && !reduceMotion ? 5 : 4;
-    pixelText(g, String(score), W / 2, 40, s, "#f5f5f0", true);
+    pixelText(g, String(run.score), W / 2, 40, s, "#f5f5f0", true);
   }
 
   function drawReadyOverlay(g) {
@@ -1024,6 +1100,16 @@
     g.font = "11px " + "ui-monospace, Menlo, Consolas, monospace";
     g.fillStyle = "rgba(111,111,122,0.95)";
     g.fillText("它真的会飞吗？", W / 2, 220);
+
+    /* Tiny legend also appears on phones, where the footer hint is hidden. */
+    g.drawImage(PICKUP_SPRITES.food, 78, 402);
+    g.drawImage(PICKUP_SPRITES.treat, 186, 402);
+    g.font = "10px ui-monospace, Menlo, Consolas, monospace";
+    g.fillStyle = "#c6cad6";
+    g.textAlign = "left";
+    g.fillText("FOOD +1", 104, 414);
+    g.fillText("TREAT +2", 210, 414);
+    g.textAlign = "center";
 
     var blink = reduceMotion ? 0.85 : 0.55 + 0.45 * Math.sin(elapsed * 4.2);
     g.globalAlpha = blink;
@@ -1070,7 +1156,7 @@
     g.fillText("SCORE", cx + 34, cy + 78);
     g.fillText("BEST", cx + 34, cy + 112);
 
-    pixelText(g, String(score), cx + cw - 60, cy + 66, 3, "#f5f5f0", false);
+    pixelText(g, String(run.score), cx + cw - 60, cy + 66, 3, "#f5f5f0", false);
     pixelText(g, String(store.best), cx + cw - 60, cy + 100, 3, newBest ? "#c9f44d" : "#f5f5f0", false);
 
     if (newBest) {
@@ -1126,12 +1212,13 @@
     var i;
     for (i = 0; i < pipes.length; i += 1) {
       drawPipe(g, pipes[i]);
+      drawPickup(g, pipes[i]);
     }
 
-    var scrollSpeed = state === ST.PLAYING ? d().speed : (state === ST.DYING ? 0 : 60);
-    drawGround(g, groundScroll);
+    drawGround(g, reduceMotion ? 0 : groundScroll);
 
     drawCat(g);
+    drawPickupEffects(g);
     g.setTransform(viewScale, 0, 0, viewScale, 0, 0);
 
     drawHUD(g);
@@ -1327,10 +1414,11 @@
   window.__CC_SPRITES = SPRITES;
   window.__CC_STATE = function () {
     return {
-      state: state, paused: paused, score: score, best: store.best,
+      state: state, paused: paused, score: run.score, best: store.best,
+      pipesPassed: run.pipesPassed, bonusScore: run.bonusScore, effects: pickupEffects.length,
       cat: { cy: cat.cy, vy: cat.vy },
       pipes: pipes.map(function (p) {
-        return { x: p.x, center: p.center, gap: p.gap, scored: p.scored };
+        return { x: p.x, center: p.center, gap: p.gap, scored: p.scored, pickup: p.pickup && Object.assign({}, p.pickup) };
       })
     };
   };

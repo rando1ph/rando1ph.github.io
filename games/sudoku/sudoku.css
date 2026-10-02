@@ -282,6 +282,23 @@
   color: var(--sd-hint);
 }
 
+/* Answer checks are transient and leave the normal conflict layer intact. */
+.sd-cell.is-check-error {
+  animation: sd-check-cell 300ms linear 3;
+}
+
+.sd-cell.is-check-error .sd-val {
+  animation: sd-check-digit 300ms linear 3;
+}
+
+@keyframes sd-check-cell {
+  25%, 60% { background: rgba(255, 107, 107, 0.42); }
+}
+
+@keyframes sd-check-digit {
+  25%, 60% { color: var(--sd-conflict); }
+}
+
 /* Victory sweep — one restrained 3x3 box stagger */
 .sd-board.is-complete .sd-cell {
   animation: sd-box-in 0.42s var(--ease) both;
@@ -432,7 +449,7 @@
 
 .sd-actions {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 6px;
   margin-bottom: 0.6rem;
 }
@@ -500,6 +517,18 @@
    ------------------------------------------------------------------ */
 
 @media (max-width: 520px) {
+  .sd-actions:not(.sd-actions-puzzle) {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .sd-actions:not(.sd-actions-puzzle) .sd-btn {
+    grid-column: span 2;
+  }
+
+  .sd-actions:not(.sd-actions-puzzle) [data-sd-hint] {
+    grid-column: 2 / span 2;
+  }
+
   .sd-pad {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -542,6 +571,16 @@
   .sd-cell.is-hint-pulse {
     animation: none;
     background: rgba(126, 208, 255, 0.16);
+  }
+
+  .sd-cell.is-check-error {
+    animation: none;
+    background: rgba(255, 107, 107, 0.42);
+  }
+
+  .sd-cell.is-check-error .sd-val {
+    animation: none;
+    color: var(--sd-conflict);
   }
 
   .sd-board.is-complete .sd-cell {

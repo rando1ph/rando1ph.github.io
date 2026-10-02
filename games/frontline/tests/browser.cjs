@@ -297,7 +297,7 @@ const fs = require("fs");
             scale: 10,
           },
         ],
-      });
+      }, { enemyLimit: 48 });
     q.step(30);
     return {
       scouts: g.squad,

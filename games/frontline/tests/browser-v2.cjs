@@ -1,8 +1,9 @@
-// V2-specific browser checks. Run alongside browser.cjs with external Playwright.
+// V2 and V3 browser checks. Run alongside browser.cjs with external Playwright.
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 (async () => {
+  fs.mkdirSync("/tmp/frontline-v3-qa", { recursive: true });
   const browser = await chromium.launch({
     headless: true,
     executablePath: "/usr/bin/google-chrome",
@@ -49,7 +50,7 @@ const fs = require("node:fs");
     q.start();
     q.freeze();
     q.game.time = 90;
-    q.game.squad = 20;
+    q.game.squad = 500;
     q.game.state = "won";
     q.step(1);
   });
@@ -64,15 +65,32 @@ const fs = require("node:fs");
   });
   assert.deepEqual(await page.evaluate(() => frontlineQA.save.mastery[0]), {
     time: 90,
-    survivors: 20,
+    survivors: 500,
   });
   await page.reload();
   assert.deepEqual(await page.evaluate(() => frontlineQA.save.mastery[0]), {
     time: 90,
-    survivors: 20,
+    survivors: 500,
   });
+  await page.getByRole("button", { name: "Choose sector" }).click();
+  await page.getByRole("button", { name: /Sector 1:/ }).click();
+  assert.ok((await page.locator(".mastery").innerText()).includes("500 SCOUTS"));
+  // Malformed mastery fields do not invalidate the rest of a valid old save.
+  await page.evaluate(() => {
+    const key = "randolf:frontline:v1", s = JSON.parse(localStorage.getItem(key));
+    s.mastery[1] = { time: 80, survivors: 120 };
+    s.mastery[2] = { time: 80, survivors: 61 };
+    s.mastery[3] = { time: 80, survivors: Number.MAX_SAFE_INTEGER + 1 };
+    s.mastery[4] = { time: 80, survivors: -1 };
+    localStorage.setItem(key, JSON.stringify(s));
+  });
+  await page.reload();
+  assert.equal(await page.evaluate(() => frontlineQA.save.mastery[1].survivors), 120);
+  assert.equal(await page.evaluate(() => frontlineQA.save.mastery[2].survivors), 61);
+  assert.equal(await page.evaluate(() => frontlineQA.save.mastery[3]), undefined);
+  assert.equal(await page.evaluate(() => frontlineQA.save.mastery[4]), undefined);
   report.migration =
-    "V1 completion, seeds, Endless records and sound retained; mastery added, better records retained across replay/reload";
+    "V1 completion, seeds, Endless records and sound retained; mastery added, 61/120/500 survivors retained across replay/reload; invalid mastery discarded individually";
   report.interactions = await page.evaluate(() => {
     const q = frontlineQA;
     q.start();
@@ -130,17 +148,17 @@ const fs = require("node:fs");
     const g = q.game;
     g.schedule = [];
     g.bossStarted = true;
-    g.squad = 48;
+    g.squad = 240;
     g.weapon = 2;
     g.time = 45;
     g.wave = 18;
     g.spawn({
       tags: ["horde"],
       items: [
-        ...Array.from({ length: 12 }, (_, i) => ({
-          kind: ["grunt", "runner", "brute", "elite"][i % 4],
+        ...Array.from({ length: 27 }, (_, i) => ({
+          kind: i % 8 === 7 ? "elite" : ["grunt", "runner", "brute"][i % 3],
           x: 80 + (i % 3) * 116,
-          y: 195 + Math.floor(i / 3) * 46,
+          y: 130 + Math.floor(i / 3) * 36,
           scale: 1,
         })),
         { kind: "amplifier", x: 94, y: 465, value: -12, maxValue: 12 },
@@ -151,7 +169,12 @@ const fs = require("node:fs");
       ],
     });
     g.pickups[1].hp = 13;
-    q.step(1);
+    for (let i = 0; i < 270; i++) g.bullets.push({
+      x: 55 + (i % 30) * 10, y: 170 + Math.floor(i / 30) * 42,
+      vx: 0, vy: -1508, damage: 1, color: "#ffdc86",
+    });
+    q.renderer.draw(g);
+    q.step(0);
   };
   report.viewports = [];
   for (const [width, height] of [
@@ -162,6 +185,16 @@ const fs = require("node:fs");
   ]) {
     await page.setViewportSize({ width, height });
     await page.evaluate(fixture);
+    const reserve = await page.evaluate(() => {
+      const q = frontlineQA, labels = [], original = q.renderer.text;
+      q.renderer.text = function (text, ...args) { labels.push(text); return original.call(this, text, ...args); };
+      q.renderer.draw(q.game);
+      q.renderer.text = original;
+      return { labels, hud: document.getElementById("squad-label").textContent, enemies: q.game.enemies.length };
+    });
+    assert.ok(reserve.labels.includes("+210"));
+    assert.ok(reserve.hud.includes("240"));
+    assert.equal(reserve.enemies, 27);
     const layout = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth > innerWidth,
       footer: document.querySelector(".game-foot").getBoundingClientRect()
@@ -171,84 +204,125 @@ const fs = require("node:fs");
     assert.equal(layout.overflow, false);
     assert.ok(layout.footer <= height);
     await page.screenshot({
-      path: `/tmp/frontline-v2-qa/v2-mixed-${width}.png`,
+      path: `/tmp/frontline-v3-qa/v3-mixed-${width}.png`,
     });
     report.viewports.push({ width, height, ...layout });
   }
-  report.stress = await page.evaluate(async () => {
-    const q = frontlineQA,
-      g = q.game;
-    g.banner = null;
-    g.enemies = [];
-    g.pickups = [];
-    g.bullets = [];
-    g.effects = [];
-    g.squad = 60;
-    g.spawn({
-      items: Array.from({ length: 48 }, (_, i) => ({
-        kind: ["grunt", "runner", "brute", "elite"][i % 4],
-        x: 65 + (i % 8) * 40,
-        y: 80 + Math.floor(i / 8) * 68,
-        scale: 10,
-      })),
-    });
-    g.spawn({
-      items: Array.from({ length: 6 }, (_, i) => ({
-        kind: i % 2 ? "weapon" : "amplifier",
-        crated: !!(i % 2),
-        hp: 24,
-        value: -10,
-        x: 94 + (i % 3) * 116,
-        y: 430 + Math.floor(i / 3) * 100,
-      })),
-    });
-    for (let i = 0; i < 330; i++)
-      g.bullets.push({
-        x: 55 + (i % 30) * 10,
-        y: 170 + Math.floor(i / 30) * 40,
-        vx: 0,
-        vy: -1160,
-        damage: 1,
-        color: "#ffdc86",
+  // Replay genuine generated encounters through the browser renderer, one
+  // six-step batch per RAF (accelerated automation, not human play evidence).
+  report.liveRuns = [];
+  for (const scenario of [
+    { level: 0, seed: 1, seconds: 24 },
+    { level: 9, seed: 2, seconds: 36 },
+    { level: 0, seed: 22, seconds: 30, late: true },
+  ]) {
+    const observed = await page.evaluate(async (scenario) => {
+      const { pilot } = await import("./tests/pilot.mjs");
+      const q = frontlineQA;
+      q.select(scenario.level);
+      q.start(scenario.late ? "endless" : "campaign", scenario.seed);
+      q.freeze();
+      const g = q.game;
+      if (scenario.late) Object.assign(g, {
+        time: 768, nextBoss: 820, nextEndless: 769, squad: 120, weapon: 2,
       });
-    g.burst(210, 350, "#ff7799", 140);
-    const times = [],
-      intervals = [];
-    // Instrument the real RAF draw, rather than rendering an extra frame in
-    // each RAF or queuing hundreds of raster jobs in a synchronous loop.
-    const originalDraw = q.renderer.draw;
-    await new Promise((resolve) => {
-      let previous;
-      q.renderer.draw = function (game) {
-        const now = performance.now();
-        if (previous !== undefined) intervals.push(now - previous);
-        previous = now;
-        originalDraw.call(this, game);
-        times.push(performance.now() - now);
-        if (times.length >= 180) {
-          this.draw = originalDraw;
-          resolve();
-        }
+      const began = g.time;
+      let peak = 0, frames = 0;
+      while (g.time - began < scenario.seconds && g.state === "playing") {
+        await new Promise(requestAnimationFrame);
+        if (frames % 2 === 0) pilot(g, "threat-aware");
+        q.step(6);
+        peak = Math.max(peak, g.enemies.length);
+        frames++;
+      }
+      return { ...scenario, state: g.state, time: g.time, squad: g.squad,
+        lost: g.stats.lost, collected: g.stats.collected, panelHits: g.stats.panelHits,
+        kills: g.kills, peak, frames };
+    }, scenario);
+    assert.equal(observed.state, "playing");
+    assert.ok(observed.peak <= 30);
+    await page.screenshot({ path: `/tmp/frontline-v3-qa/live-${scenario.late ? "endless" : scenario.level + 1}.png` });
+    report.liveRuns.push(observed);
+  }
+  for (const enemyCount of [30, 48]) {
+    report[enemyCount === 30 ? "realisticPeak" : "stress"] = await page.evaluate(async (enemyCount) => {
+      const q = frontlineQA,
+        g = q.game;
+      g.banner = null;
+      g.enemies = [];
+      g.pickups = [];
+      g.bullets = [];
+      g.effects = [];
+      g.hostile = [];
+      g.texts = [];
+      g.squad = 240;
+      g.spawn({
+        items: Array.from({ length: enemyCount }, (_, i) => ({
+          kind: i % 8 === 7 ? "elite" : ["grunt", "runner", "brute"][i % 3],
+          x: 65 + (i % 8) * 40,
+          y: 80 + Math.floor(i / 8) * 68,
+          scale: 10,
+        })),
+      }, { enemyLimit: enemyCount });
+      g.spawn({
+        items: Array.from({ length: 6 }, (_, i) => ({
+          kind: i % 2 ? "weapon" : "amplifier",
+          crated: !!(i % 2),
+          hp: 24,
+          value: -10,
+          x: 94 + (i % 3) * 116,
+          y: 430 + Math.floor(i / 3) * 100,
+        })),
+      });
+      for (let i = 0; i < 330; i++)
+        g.bullets.push({
+          x: 55 + (i % 30) * 10,
+          y: 170 + Math.floor(i / 30) * 40,
+          vx: 0,
+          vy: -1508,
+          damage: 1,
+          color: "#ffdc86",
+        });
+      g.burst(210, 350, "#ff7799", 140);
+      const times = [],
+        intervals = [];
+      // Instrument the real RAF draw, rather than rendering an extra frame in
+      // each RAF or queuing hundreds of raster jobs in a synchronous loop.
+      const originalDraw = q.renderer.draw;
+      await new Promise((resolve) => {
+        let previous;
+        q.renderer.draw = function (game) {
+          const now = performance.now();
+          if (previous !== undefined) intervals.push(now - previous);
+          previous = now;
+          originalDraw.call(this, game);
+          times.push(performance.now() - now);
+          if (times.length >= 180) {
+            this.draw = originalDraw;
+            resolve();
+          }
+        };
+      });
+      times.sort((a, b) => a - b);
+      intervals.sort((a, b) => a - b);
+      return {
+        scouts: g.squad,
+        visible: 30,
+        enemies: g.enemies.length,
+        resources: g.pickups.length,
+        bullets: g.bullets.length,
+        particles: g.effects.length,
+        drawMedian: times[90],
+        drawP95: times[171],
+        drawWorst: times.at(-1),
+        frameMedian: intervals[89],
+        frameP95: intervals[170],
+        frameWorst: intervals.at(-1),
       };
-    });
-    times.sort((a, b) => a - b);
-    intervals.sort((a, b) => a - b);
-    return {
-      scouts: g.squad,
-      visible: 30,
-      enemies: g.enemies.length,
-      resources: g.pickups.length,
-      bullets: g.bullets.length,
-      particles: g.effects.length,
-      drawMedian: times[90],
-      drawP95: times[171],
-      drawWorst: times.at(-1),
-      frameMedian: intervals[89],
-      frameP95: intervals[170],
-      frameWorst: intervals.at(-1),
-    };
-  });
-  await page.screenshot({ path: "/tmp/frontline-v2-qa/v2-stress.png" });
+    }, enemyCount);
+    assert.equal(report[enemyCount === 30 ? "realisticPeak" : "stress"].enemies, enemyCount);
+    await page.screenshot({ path: `/tmp/frontline-v3-qa/v3-perf-${enemyCount}.png` });
+  }
   report.frameIntervals = await page.evaluate(async () => {
     const samples = [];
     let previous;
@@ -305,12 +379,20 @@ const fs = require("node:fs");
   });
   for (const cue of report.audio.cues) assert.ok(cue.peak > 0 && cue.peak < 1);
   assert.ok(report.audio.additionalVoices <= 1);
+  for (const raw of ["{bad json", JSON.stringify({ version: 42 }), "null"]) {
+    await page.evaluate((raw) => localStorage.setItem("randolf:frontline:v1", raw), raw);
+    await page.reload();
+    assert.deepEqual(await page.evaluate(() => frontlineQA.save.completed), []);
+    assert.deepEqual(await page.evaluate(() => frontlineQA.save.mastery), {});
+    assert.equal(await page.evaluate(() => frontlineQA.save.best.score), 0);
+  }
+  report.malformedStorage = "invalid JSON, unsupported version and null fall back safely";
   report.errors = errors;
   report.warnings = warnings;
   assert.equal(errors.length, 0);
   assert.equal(warnings.length, 0);
   fs.writeFileSync(
-    "/tmp/frontline-v2-qa/browser-v2-results.json",
+    "/tmp/frontline-v3-qa/browser-v3-results.json",
     JSON.stringify(report, null, 2),
   );
   console.log(JSON.stringify(report, null, 2));

@@ -9,13 +9,20 @@ import {
   campaign,
   encounter,
   endlessEncounter,
+  pacing,
 } from "./content.js";
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+export const VISIBLE_SCOUTS = 30,
+  MAX_ENEMIES = 30;
 const formations = new Map();
+// Emission grows naturally to 30 scouts, then each visible shot carries reserves.
+export function firepowerScale(count) {
+  return count <= 60 ? Math.max(1, count / 30) : 2 + Math.log2(count / 60);
+}
 export function formation(count) {
-  if (formations.has(count)) return formations.get(count);
-  const n = Math.min(count, 30),
-    cols = Math.min(6, Math.ceil(Math.sqrt(n * 1.5))),
+  const n = clamp(Math.floor(count), 0, VISIBLE_SCOUTS);
+  if (formations.has(n)) return formations.get(n);
+  const cols = Math.min(6, Math.ceil(Math.sqrt(n * 1.5))),
     points = [];
   for (let i = 0; i < n; i++) {
     const row = Math.floor(i / cols),
@@ -27,7 +34,7 @@ export function formation(count) {
       y: row * (n > 12 ? 20 : 29) + Math.cos(i * 6) * 2,
     });
   }
-  formations.set(count, points);
+  formations.set(n, points);
   return points;
 }
 // Segment/rectangle entry time: every projectile resolves its nearest physical hit.
@@ -85,6 +92,8 @@ export class Game {
     this.bosses = 0;
     this.cooldown = 0.15;
     this.invulnerable = 0;
+    this.breachDebt = 0;
+    this.breachCooldown = 0;
     this.flash = 0;
     this.shake = 0;
     this.next = 0;
@@ -141,9 +150,9 @@ export class Game {
         Math.abs(649 + p.y - y) < ry + 12,
     );
   }
-  spawn(block) {
+  spawn(block, { enemyLimit = MAX_ENEMIES } = {}) {
     for (const [kind, title, detail] of [
-      ["amplifier", "AMPLIFIER", "Shoot +1 per hit · cross to claim"],
+      ["amplifier", "AMPLIFIER", "Red breaches hurt · shoot to zero"],
       ["crate", "SEALED UPGRADE", "Break it first · unopened crates hurt"],
     ]) {
       if (
@@ -160,7 +169,13 @@ export class Game {
     }
     block.items.forEach((item) => {
       const d = ENEMIES[item.kind];
-      if (d)
+      if (d) {
+        // Admission ceilings bound overlapping waves; stress fixtures opt in explicitly.
+        if (
+          this.enemies.length >= enemyLimit ||
+          (enemyLimit === MAX_ENEMIES && item.kind === "elite" &&
+            this.enemies.filter((e) => e.kind === "elite").length >= 4)
+        ) return;
         this.enemies.push({
           ...item,
           ...d,
@@ -173,7 +188,7 @@ export class Game {
           hit: 0,
           fire: 3,
         });
-      else {
+      } else {
         const guard = block.tags?.includes("risk")
           ? this.enemies.find(
               (e) => Math.abs(e.baseX - item.x) < 25 && e.hp > 0,
@@ -258,12 +273,12 @@ export class Game {
       this.say("CRATE IMPACT", p.x, 570, "#ffb39c");
       return;
     }
-    this.stats.collected++;
+    if (p.kind !== "amplifier" || p.value > 0) this.stats.collected++;
     if (p.kind === "amplifier") {
       const value = clamp(p.value, p.minValue ?? -16, p.maxValue ?? 10);
       if (value < 0) this.hurt(-value, p.x, true);
       else {
-        const gain = Math.min(60 - this.squad, value);
+        const gain = value;
         this.squad += gain;
         this.stats.panelGain += gain;
         this.say(`+${gain} SCOUTS`);
@@ -274,7 +289,7 @@ export class Game {
     }
     if (p.kind === "squad") {
       const old = this.squad;
-      this.squad = Math.min(60, this.squad + p.value);
+      this.squad += p.value;
       this.say(`+${this.squad - old} SCOUTS`);
       this.emit("growth");
     }
@@ -306,7 +321,7 @@ export class Game {
     const lost = Math.min(this.squad, amount);
     this.squad -= lost;
     this.stats.lost += lost;
-    this.invulnerable = 0.7;
+    if (!resource) this.invulnerable = 0.35;
     this.shake = 5;
     this.say(`−${lost} SCOUT${lost === 1 ? "" : "S"}`, this.x, 600, "#ff8c9d");
     this.burst(x, 643, "#79dafa", 13);
@@ -328,7 +343,8 @@ export class Game {
     this.nextEndless =
       this.time +
       block.pace.interval +
-      (block.tags.includes("horde") ? 1.0 : 0);
+      (block.tags.includes("recovery") ? 0.6 :
+        block.tags.includes("horde") ? 0.25 : 0);
   }
   hitResource(p, b) {
     p.hit = 0.11;
@@ -446,7 +462,7 @@ export class Game {
               y: 631 + p.y,
               vx: Math.sin(a) * w.speed,
               vy: -w.speed,
-              damage: w.damage * this.damage * Math.max(1, this.squad / 30),
+              damage: w.damage * this.damage * firepowerScale(this.squad),
               color: w.color,
             });
         }),
@@ -466,23 +482,33 @@ export class Game {
         e.fire -= dt;
         if (e.fire <= 0) {
           e.fire = 3;
-          this.hostile.push({ x: e.x, y: e.y + 20, vx: 0, vy: 155, r: 7 });
+          if (this.hostile.length < 80)
+            this.hostile.push({ x: e.x, y: e.y + 20, vx: 0, vy: 155, r: 7 });
           this.burst(e.x, e.y, "#f677ce", 5);
         }
       }
       if (this.contact(e.x, e.y, e.radius * 0.82, e.radius * 0.8)) {
-        this.hurt(e.hurt, e.x);
-        e.hp = 0;
-        e.escaped = true;
-      } else if (e.y > 735) {
+        if (this.invulnerable <= 0) this.hurt(e.hurt, e.x);
+        else this.breachDebt += e.breach;
         e.hp = 0;
         e.escaped = true;
         this.stats.enemyEscapes++;
-        if (this.invulnerable <= 0) {
-          this.hurt(1, e.x);
-          this.say("BREACH", e.x, 705, "#ff98aa");
-        }
+      } else if (e.y >= 649) {
+        e.hp = 0;
+        e.escaped = true;
+        this.stats.enemyEscapes++;
+        this.breachDebt += e.breach;
       }
+    }
+    // Every leak counts. Drain clustered losses over time instead of one frame,
+    // independently of contact grace; no debt is erased by the next collision.
+    this.breachCooldown = Math.max(0, this.breachCooldown - dt);
+    if (this.breachDebt > 0 && this.breachCooldown <= 0) {
+      const loss = Math.min(2, this.breachDebt);
+      this.breachDebt -= loss;
+      this.hurt(loss, this.x, true);
+      this.breachCooldown = 0.12;
+      this.say("BREACH", this.x, 605, "#ff98aa");
     }
     const boss = this.boss;
     if (boss) {
@@ -495,7 +521,7 @@ export class Game {
         if (this.mode === "endless" && this.bosses >= 2) {
           boss.adds -= dt;
           if (boss.adds <= 0) {
-            boss.adds = 6;
+            boss.adds = 2.6 + 3.4 / (1 + this.time / 384);
             const x = LANES[Math.floor(this.rng() * 3)];
             this.spawn({
               items: [
@@ -504,6 +530,7 @@ export class Game {
                   x,
                   y: -30,
                   scale: 1 + Math.min(0.5, this.bosses * 0.06),
+                  speedScale: pacing(Math.floor(this.time / 32)).enemySpeed,
                 },
               ],
             });
@@ -538,7 +565,8 @@ export class Game {
           }
           if (a.t > 1.8) {
             boss.attack = null;
-            boss.cooldown = boss.kind === "maw" ? 1.5 : 2.1;
+            boss.cooldown = (boss.kind === "maw" ? 1.5 : 2.1) /
+              (this.mode === "endless" ? 1 + 0.5 * this.time / (this.time + 384) : 1);
           }
         }
       }
@@ -612,9 +640,9 @@ export class Game {
       this.emit("bossDeath");
       if (this.mode === "campaign") this.finish(true);
       else {
-        this.nextBoss = this.time + 43;
+        this.nextBoss = this.time + 24 + 19 / (1 + this.time / 384);
         this.nextEndless = this.time + 3;
-        this.squad = Math.min(60, this.squad + 4);
+        this.squad += 4;
       }
     }
     for (const p of this.pickups) {
@@ -625,10 +653,11 @@ export class Game {
         p.tint += (Math.sign(p.value) - p.tint) * (1 - Math.exp(-14 * dt));
       if (p.released > 0) p.released -= dt;
       else p.y += (p.locked ? p.guard.speed : (p.speed ?? 82)) * dt;
-      // The same rendered scout footprint touches good and dangerous objects.
+      // Red panels breach globally; rewards and crates require physical contact.
       if (!p.done && p.y >= 635) {
         p.done = true;
         if (
+          (p.kind === "amplifier" && p.value < 0) ||
           this.contact(
             p.x,
             649,

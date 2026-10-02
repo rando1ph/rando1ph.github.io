@@ -1,6 +1,6 @@
 # Frontline
 
-Current release: **V2**. See [V2 implementation and QA report](V2-REPORT.md) for current mechanics, comparison data, checks and known limits.
+Current release: **V3**. See [V3 implementation and QA report](V3-REPORT.md) for the pressure and squad-scaling pass, checks and playtesting limits. The [V2 report](V2-REPORT.md) remains historical evidence.
 
 Current local preview: **http://127.0.0.1:8018/games/frontline/**
 

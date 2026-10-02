@@ -1,4 +1,5 @@
 export function pilot(g, style = "balanced") {
+  const aware = style === "threat-aware";
   const lanes = [94, 210, 326];
   if (g.boss?.attack) {
     g.target = lanes
@@ -17,12 +18,16 @@ export function pilot(g, style = "balanced") {
       if (e.y > 55 && Math.abs(e.x - c.x) < 48) {
         c.score += (e.y / 760) * (style === "resources" ? 2 : 10);
         if (e.y > 570 && e.hp > g.squad * 1.2) c.score -= 32;
+        if (aware && e.y > 450) c.score += 6;
       }
     for (const p of g.pickups)
       if (!p.done && p.y > 60 && p.y < 700 && Math.abs(p.x - c.x) < 35) {
         const near = Math.max(0, 1 - Math.abs(520 - p.y) / 600);
         if (p.type === "panel") {
-          if (p.value < 0 && p.y > 535) c.score -= 45;
+          if (aware && p.value < 0)
+            c.score += 50 + near * 20 + (p.y > 430 ? 16 : 0);
+          else if (p.value < 0 && p.y > 535) c.score -= 45;
+          else if (aware) c.score += p.y > 500 ? 35 + p.value : 2;
           else
             c.score +=
               (style === "combat" ? 3 : 8) * near +
@@ -30,16 +35,14 @@ export function pilot(g, style = "balanced") {
         } else if (p.type === "crate") {
           if (p.y > 535 && p.hp > g.squad * 1.3) c.score -= 30;
           else c.score += near * (p.kind === "weapon" && g.weapon < 2 ? 19 : 5);
-        } else
-          c.score +=
-            near *
-            (p.kind === "weapon" && g.weapon < 2
-              ? 25
-              : p.kind === "squad"
-                ? style === "combat"
-                  ? 6
-                  : 19
-                : 7);
+        } else {
+          let weight = 7;
+          if (p.kind === "weapon" && g.weapon < 2)
+            weight = aware ? (p.y > 500 ? 45 : 3) : 25;
+          else if (p.kind === "squad")
+            weight = aware ? (p.y > 540 ? 45 : 2) : style === "combat" ? 6 : 19;
+          c.score += near * weight;
+        }
       }
   }
   g.target = candidates.sort((a, b) => b.score - a.score)[0].x;
