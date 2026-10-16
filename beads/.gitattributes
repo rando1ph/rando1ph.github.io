@@ -1,0 +1,2 @@
+# Preserve the pinned upstream tree byte for byte, including Markdown line breaks.
+upstream/** -whitespace

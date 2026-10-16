@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /beads/
+Sitemap: https://randolf.dev/beads/sitemap.xml

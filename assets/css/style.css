@@ -3230,3 +3230,11 @@ a:focus-visible,
     opacity: 1;
   }
 }
+
+/* Keep the global navigation readable with the bead studio entry on phones. */
+@media (max-width: 420px) {
+  .site-header { padding-inline: 1rem; }
+  .site-nav ul { gap: .8rem; }
+  .site-nav a { letter-spacing: .08em; }
+  .site-header .brand { letter-spacing: .16em; }
+}

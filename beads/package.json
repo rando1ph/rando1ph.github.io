@@ -1,0 +1,16 @@
+{
+  "name": "randolf-beads",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "playwright test",
+    "test:upstream": "npm --prefix upstream run qa:ci",
+    "check": "npm --prefix upstream run check && npm --prefix upstream run test:unit"
+  },
+  "engines": { "node": ">=22.12.0" },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "vite": "8.2.2"
+  }
+}
