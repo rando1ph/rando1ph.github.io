@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="START — 给每一次出发，留一点空间。安静、轻快、属于你的浏览器起始页。"
+    />
+    <meta name="theme-color" content="#0b1426" />
+    <title>START — A little space. A fresh start.</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+    <script>
+      try {
+        const s = JSON.parse(
+          localStorage.getItem("randolf-start-v1"),
+        )?.settings;
+        const mode = ["light", "dark", "system"].includes(s?.theme)
+          ? s.theme
+          : "system";
+        document.documentElement.dataset.theme =
+          mode === "system"
+            ? matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light"
+            : mode;
+      } catch (_) {
+        document.documentElement.dataset.theme = matchMedia(
+          "(prefers-color-scheme: dark)",
+        ).matches
+          ? "dark"
+          : "light";
+      }
+    </script>
+    <link rel="stylesheet" href="./style.css" />
+    <script type="module" src="./app.mjs"></script>
+  </head>
+  <body>
+    <div class="landscape" aria-hidden="true"></div>
+    <div class="atmosphere" aria-hidden="true"></div>
+    <a class="skip-link" href="#search">跳到搜索</a>
+    <header class="topbar">
+      <a class="wordmark" href="./" aria-label="START 首页"
+        ><svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M4 17a8 8 0 0 1 16 0M8 17a4 4 0 0 1 8 0M12 3v2M3 7l2 2m16-2-2 2"
+          /></svg
+        ><span>START</span></a
+      >
+      <div class="header-actions">
+        <span class="header-note">A SPACE OF YOUR OWN</span
+        ><span class="header-divider"></span
+        ><button
+          class="icon-button"
+          id="theme-toggle"
+          type="button"
+          aria-label="切换到日间主题"
+          title="切换主题"
+        ></button
+        ><button
+          class="icon-button"
+          id="settings-open"
+          type="button"
+          aria-label="打开设置"
+          title="设置"
+        ></button>
+      </div>
+    </header>
+    <main class="workspace" id="main">
+      <section class="hero" aria-label="时间与搜索">
+        <p class="eyebrow" id="greeting">A LITTLE SPACE. A FRESH START.</p>
+        <h1 class="clock" aria-label="当前时间">
+          <time id="clock" datetime="00:00"
+            ><span>00</span><span class="clock-colon">:</span
+            ><span>00</span></time
+          ><span id="period" class="clock-period" hidden></span>
+        </h1>
+        <p class="date-line">
+          <time id="date"></time
+          ><span class="date-dot" aria-hidden="true"></span
+          ><span id="weekday"></span>
+        </p>
+        <div class="search-area">
+          <form
+            id="search-form"
+            class="search-bar"
+            role="search"
+            autocomplete="off"
+          >
+            <label class="engine-picker" title="选择搜索引擎"
+              ><span id="engine-mark" aria-hidden="true">G</span
+              ><select id="search-engine" aria-label="搜索引擎">
+                <option value="google">Google</option>
+                <option value="bing">Bing</option>
+                <option value="duckduckgo">DuckDuckGo</option>
+                <option value="baidu">百度</option></select
+              ><svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="m5 6 3 3 3-3" /></svg
+            ></label>
+            <span class="search-divider" aria-hidden="true"></span>
+            <input
+              id="search"
+              name="q"
+              type="text"
+              placeholder="搜索，或输入网址"
+              aria-label="搜索或输入网址"
+              spellcheck="false"
+              enterkeyhint="go"
+              maxlength="2048"
+            />
+            <kbd class="search-key" aria-hidden="true">/</kbd>
+            <button
+              id="search-submit"
+              type="submit"
+              aria-label="搜索或前往网址"
+            ></button>
+          </form>
+          <div class="search-caption">
+            <span id="search-caption">让好奇心，带你去远一点的地方。</span
+            ><span class="keyboard-caption"><kbd>↵</kbd> 出发</span>
+          </div>
+        </div>
+      </section>
+      <section class="destinations" aria-label="网址导航">
+        <div class="navigation-heading">
+          <p>
+            <span class="status-dot" aria-hidden="true"></span>你的常用去处<span
+              class="navigation-subtitle"
+            >
+              / YOUR CORNER OF THE WEB</span
+            >
+          </p>
+          <button
+            id="edit-toggle"
+            class="text-button"
+            type="button"
+            aria-pressed="false"
+          ></button>
+        </div>
+        <div id="categories" class="category-grid"></div>
+        <button
+          id="add-category"
+          type="button"
+          class="add-category"
+          hidden
+        ></button>
+      </section>
+      <footer class="footer">
+        <span>LESS NOISE, MORE POSSIBILITY.</span
+        ><button
+          class="footer-help"
+          id="help-open"
+          type="button"
+          aria-label="查看键盘快捷键"
+        >
+          <span class="keyboard-caption"><kbd>?</kbd> 快捷键</span
+          ><span class="mobile-help">使用帮助</span></button
+        ><span class="footer-local"
+          ><span class="tiny-dot"></span>只存于此刻的浏览器</span
+        >
+      </footer>
+    </main>
+    <dialog
+      id="settings-dialog"
+      class="modal settings-modal"
+      aria-labelledby="settings-title"
+    >
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">MAKE IT YOURS</p>
+          <h2 id="settings-title">你的 START</h2>
+        </div>
+        <button
+          type="button"
+          class="icon-button dialog-close"
+          aria-label="关闭设置"
+        ></button>
+      </div>
+      <div class="modal-body settings-body">
+        <section class="setting-section">
+          <h3>外观</h3>
+          <div class="theme-options" role="group" aria-label="主题">
+            <button data-theme-choice="light" type="button">
+              <span class="theme-preview preview-light"></span
+              ><span>日间</span></button
+            ><button data-theme-choice="dark" type="button">
+              <span class="theme-preview preview-dark"></span
+              ><span>夜间</span></button
+            ><button data-theme-choice="system" type="button">
+              <span class="theme-preview preview-system"></span
+              ><span>跟随系统</span>
+            </button>
+          </div>
+        </section>
+        <section class="setting-section">
+          <h3>日常偏好</h3>
+          <label class="setting-row" for="setting-engine"
+            ><span>默认搜索引擎</span
+            ><select id="setting-engine">
+              <option value="google">Google</option>
+              <option value="bing">Bing</option>
+              <option value="duckduckgo">DuckDuckGo</option>
+              <option value="baidu">百度</option>
+            </select></label
+          ><label class="setting-row" for="setting-newtab"
+            ><span
+              >在新标签页中打开<span class="setting-description"
+                >适用于搜索和快捷链接</span
+              ></span
+            ><input id="setting-newtab" class="switch" type="checkbox" /></label
+          ><label class="setting-row" for="setting-clock24"
+            ><span>24 小时制</span
+            ><input
+              id="setting-clock24"
+              class="switch"
+              type="checkbox" /></label
+          ><label class="setting-row" for="setting-seconds"
+            ><span>显示秒数</span
+            ><input id="setting-seconds" class="switch" type="checkbox"
+          /></label>
+        </section>
+        <section class="setting-section">
+          <h3>配置与备份</h3>
+          <p class="section-description">
+            设置和导航仅保存在当前浏览器。导出一份备份，也可以带到另一台设备。
+          </p>
+          <div class="backup-actions">
+            <button class="secondary-button" id="export-config" type="button">
+              导出配置</button
+            ><button class="secondary-button" id="import-config" type="button">
+              导入配置</button
+            ><input
+              type="file"
+              id="import-file"
+              accept=".json,application/json"
+              hidden
+            />
+          </div>
+          <p class="backup-note">导入前会验证文件，并请你确认替换。</p>
+        </section>
+        <section
+          class="setting-section shortcuts-section"
+          id="shortcuts-section"
+        >
+          <h3>键盘快捷键</h3>
+          <dl class="shortcuts">
+            <div>
+              <dt>聚焦搜索</dt>
+              <dd>
+                <kbd>/</kbd> 或 <kbd id="modifier-key">Ctrl</kbd> <kbd>K</kbd>
+              </dd>
+            </div>
+            <div>
+              <dt>整理导航</dt>
+              <dd><kbd>Alt</kbd> <kbd>E</kbd></dd>
+            </div>
+            <div>
+              <dt>查看帮助</dt>
+              <dd><kbd>?</kbd></dd>
+            </div>
+            <div>
+              <dt>关闭弹窗 / 退出整理</dt>
+              <dd><kbd>Esc</kbd></dd>
+            </div>
+          </dl>
+        </section>
+        <p class="settings-footer">
+          START <span>·</span> 为专注留白，为日常而造。
+        </p>
+      </div>
+    </dialog>
+    <dialog
+      id="editor-dialog"
+      class="modal editor-modal"
+      aria-labelledby="editor-title"
+    ></dialog>
+    <dialog
+      id="confirm-dialog"
+      class="modal confirm-modal"
+      aria-labelledby="confirm-title"
+    ></dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <noscript
+      ><div class="noscript">
+        请启用 JavaScript，以使用时钟、搜索和本地导航。START
+        无需账户，所有配置保存在浏览器中。
+      </div></noscript
+    >
+  </body>
+</html>
