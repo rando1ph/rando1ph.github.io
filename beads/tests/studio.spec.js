@@ -204,6 +204,11 @@ test('responsive navigation and panels fit narrow phones, tablets and desktops',
       await page.keyboard.press('Escape');
       await expect(page.locator('#controlPanel')).not.toHaveAttribute('data-mobile-open', 'true');
     }
+    if (width <= 560) {
+      await expect(page.locator('#undoBtn')).toBeVisible();
+      await expect(page.locator('#redoBtn')).toBeVisible();
+      await expect(page.locator('.zoom-control')).toBeVisible();
+    }
     await page.screenshot({ path: info.outputPath(`layout-${width}.png`), fullPage: true });
   }
 });

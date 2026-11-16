@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'randolf-beads-';
-const CACHE_NAME = `${CACHE_PREFIX}3b334160c0c7f662`;
+const CACHE_NAME = `${CACHE_PREFIX}332c1d032efd7d8d`;
 const APP_SHELL = [
   './manifest.webmanifest',
   './offline.html',
