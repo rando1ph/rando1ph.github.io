@@ -8,7 +8,7 @@ const draftKey = 'randolf:beads:draft:v2';
 test.beforeEach(async ({ page }) => {
   page.on('dialog', dialog => dialog.accept());
   // Exercise the cross-browser download fallback; native OS save dialogs cannot
-  // be operated by headless Playwright. The upstream picker path stays intact.
+  // be operated by headless Playwright. The native picker path stays intact.
   await page.addInitScript(() => { window.showSaveFilePicker = undefined; });
 });
 async function ready(page) {
@@ -29,7 +29,7 @@ async function downloadBytes(page, action) {
   return { name: download.suggestedFilename(), bytes: await readFile(await download.path()) };
 }
 
-test('Simplified Chinese, navigation, local sample and 82 upstream browser regressions', async ({ page }) => {
+test('Simplified Chinese, navigation, local sample and browser regressions', async ({ page }) => {
   const errors = [], messages = [], network = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => messages.push(message.text()));
@@ -64,7 +64,7 @@ test('real image converts locally and exports a printable PNG and editable proje
   const requests = [];
   page.on('request', request => { if (/^https?:/.test(request.url())) requests.push(request); });
   await page.goto('/beads/');
-  await page.locator('#imageInput').setInputFiles(resolve('upstream/tests/fixtures/rocket-badge.png'));
+  await page.locator('#imageInput').setInputFiles(resolve('tests/fixtures/rocket-badge.png'));
   await ready(page);
   await openTools(page, mobile);
   await page.locator('[data-size="24"]').click();
@@ -225,7 +225,7 @@ test('homepage and every existing site navigation link to the studio', async ({ 
   await expect(page.locator('#trySampleBtn')).toBeVisible();
 });
 
-test('share-card PNG and browser print retain full upstream output', async ({ page }, info) => {
+test('share-card PNG and browser print retain complete output', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'desktop output workflow');
   await page.goto('/beads/');
   await page.locator('#trySampleBtn').click();

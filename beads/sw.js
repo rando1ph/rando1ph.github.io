@@ -1,14 +1,15 @@
-const CACHE_PREFIX = 'randolf-beads-';
-const CACHE_NAME = `${CACHE_PREFIX}332c1d032efd7d8d`;
+const CACHE_PREFIX = 'bead-grid-studio-community-';
+const CACHE_NAME = `${CACHE_PREFIX}v1.3.0`;
 const APP_SHELL = [
   './manifest.webmanifest',
-  './offline.html',
   './app-icon.svg',
   './app-icon-192.png',
   './app-icon-512.png',
   './legal.css',
   './privacy.html',
+  './privacy.en.html',
   './terms.html',
+  './terms.en.html',
   './LICENSE.txt',
   './NOTICE.txt',
   './version.json',
@@ -42,7 +43,7 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin || !url.pathname.startsWith(new URL(self.registration.scope).pathname)) return;
+  if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(
