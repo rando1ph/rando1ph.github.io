@@ -284,6 +284,7 @@ const zhCN = {
   'mobile.pattern': '图纸',
   'mobile.palette': '色板',
   'mobile.stats': '用量',
+  'mobile.help': '说明',
 
   'crop.title': '裁剪要制作的区域',
   'crop.help': '在图片上拖出一个矩形，或用下方百分比精确输入。论文、截图和多面板图片请一次只选一个主体；裁得越集中，每颗豆能保留的结构越多。',

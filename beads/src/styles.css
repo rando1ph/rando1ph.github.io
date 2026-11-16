@@ -1392,7 +1392,7 @@
         bottom: 0;
         left: 0;
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(5, 1fr);
         min-height: calc(58px + env(safe-area-inset-bottom));
         padding: 5px 8px calc(5px + env(safe-area-inset-bottom));
         background: rgba(251,250,247,.97);

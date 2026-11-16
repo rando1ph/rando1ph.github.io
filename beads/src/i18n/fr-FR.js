@@ -237,6 +237,7 @@ const frFR = {
   'mobile.pattern': 'Motif',
   'mobile.stats': 'Quantités',
   'mobile.tools': 'Outils',
+  'mobile.help': 'Aide',
   'mode.cartoon': 'Icônes et tracés · Préservation des contours',
   'mode.detail': 'Photo détaillée · Préservation des ombres',
   'mode.document': 'Structure de document · Préservation de la mise en page',

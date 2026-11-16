@@ -280,6 +280,7 @@ const enUS = {
   'mobile.pattern': 'Pattern',
   'mobile.palette': 'Palette',
   'mobile.stats': 'Counts',
+  'mobile.help': 'Help',
 
   'crop.title': 'Crop the Area You Want to Make',
   'crop.help': 'Drag a rectangle over the image or enter exact percentages below. For papers, screenshots, or multi-panel images, choose one subject at a time. A tighter crop gives every bead more useful structure.',

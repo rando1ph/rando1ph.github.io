@@ -237,6 +237,7 @@ const jaJP = {
   'mobile.pattern': '図案',
   'mobile.stats': '用量',
   'mobile.tools': 'ツール',
+  'mobile.help': '説明',
   'mode.cartoon': 'アイコン・線画 · 輪郭優先',
   'mode.detail': '詳細写真 · 明暗維持',
   'mode.document': '文書構造 · レイアウト維持',

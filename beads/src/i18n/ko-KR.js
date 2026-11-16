@@ -237,6 +237,7 @@ const koKR = {
   'mobile.pattern': '도안',
   'mobile.stats': '수량',
   'mobile.tools': '도구',
+  'mobile.help': '도움말',
   'mode.cartoon': '아이콘 및 라인 아트 · 윤곽선 보존',
   'mode.detail': '상세 사진 · 명암 디테일 유지',
   'mode.document': '문서 구조 · 레이아웃 보존',

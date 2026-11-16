@@ -3009,6 +3009,7 @@ import {
       window.addEventListener('pagehide',()=>{if(state.dirty)saveDraftNow();});
 
       document.querySelectorAll('[data-mobile-target]').forEach(button=>button.addEventListener('click',()=>openMobilePanel(button.dataset.mobileTarget)));
+      document.querySelector('[data-mobile-action="product-help"]')?.addEventListener('click',()=>{closeMobilePanels({restoreFocus:false});els.productHelpBtn.click();});
       document.querySelectorAll('.sheet-close').forEach(button=>button.addEventListener('click',closeMobilePanels));
       els.mobileScrim.addEventListener('click',closeMobilePanels);
       window.matchMedia('(min-width: 960px)').addEventListener('change',event=>{if(event.matches)closeMobilePanels({restoreFocus:false});else syncMobilePanelInert();});

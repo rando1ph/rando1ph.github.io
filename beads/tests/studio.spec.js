@@ -59,6 +59,27 @@ test('tool status messages are translated instead of displaying dictionary keys'
   await expect(page.locator('#statusMessage')).toContainText('取色工具');
 });
 
+test('PWA resources stay scoped to /beads/ and mobile help remains reachable', async ({ page }, info) => {
+  await page.goto('/beads/');
+  const manifest = await (await page.request.get('/beads/manifest.webmanifest')).json();
+  expect(new URL(manifest.start_url, 'http://127.0.0.1:4180/beads/').pathname).toBe('/beads/');
+  expect(new URL(manifest.scope, 'http://127.0.0.1:4180/beads/').pathname).toBe('/beads/');
+  for (const icon of manifest.icons) {
+    const response = await page.request.get(new URL(icon.src, 'http://127.0.0.1:4180/beads/').toString());
+    expect(response.ok()).toBe(true);
+  }
+  const serviceWorker = await (await page.request.get('/beads/sw.js')).text();
+  expect(serviceWorker).toMatch(/randolf-beads-[a-f0-9]{12}/);
+  expect(serviceWorker).toContain("new URL('./', self.registration.scope).pathname");
+  if (info.project.name === 'mobile') {
+    const help = page.locator('[data-mobile-action="product-help"]');
+    await expect(help).toBeVisible();
+    await help.click();
+    await expect(page.locator('#productDialog')).toBeVisible();
+    await page.locator('#productCloseBtn').click();
+  }
+});
+
 test('real image converts locally and exports a printable PNG and editable project', async ({ page }, info) => {
   const mobile = info.project.name === 'mobile';
   const requests = [];

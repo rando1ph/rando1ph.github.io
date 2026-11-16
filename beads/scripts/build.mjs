@@ -1,4 +1,5 @@
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'vite';
@@ -21,7 +22,6 @@ const published = [
   'robots.txt',
   'sitemap.xml',
   'social-preview.png',
-  'sw.js',
   'terms.en.html',
   'terms.html',
   'version.json',
@@ -49,6 +49,17 @@ const [css, js, license, notices] = await Promise.all([
   readFile(join(root, 'LICENSE.txt'), 'utf8'),
   readFile(join(root, 'NOTICE.txt'), 'utf8'),
 ]);
+const buildId = createHash('sha256')
+  .update(html)
+  .update(css)
+  .update(js)
+  .update(await readFile(join(root, 'public', 'manifest.webmanifest')))
+  .update(await readFile(join(root, 'public', 'version.json')))
+  .digest('hex')
+  .slice(0, 12);
+const serviceWorker = (await readFile(join(root, 'public', 'sw.js'), 'utf8'))
+  .replace('__BUILD_ID__', buildId);
+await writeFile(join(dist, 'sw.js'), serviceWorker);
 const portable = html
   .replace(/<link rel="stylesheet" crossorigin href="[^"]+">/, `<style>${css}</style>`)
   .replace(/<script type="module" crossorigin src="[^"]+"><\/script>/, `<script type="module">${js}</script>`)
@@ -60,7 +71,7 @@ await mkdir(join(root, 'assets'), { recursive: true });
 for (const entry of await readdir(join(dist, 'assets'))) {
   await cp(join(dist, 'assets', entry), join(root, 'assets', entry));
 }
-for (const name of ['index.html', ...published, 'offline.html']) {
+for (const name of ['index.html', ...published, 'sw.js', 'offline.html']) {
   await cp(join(dist, name), join(root, name), { recursive: true });
 }
 
