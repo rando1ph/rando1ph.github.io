@@ -1,14 +1,16 @@
 const CACHE_PREFIX = 'randolf-beads-';
-const CACHE_NAME = `${CACHE_PREFIX}3b334160c0c7f662`;
+const CACHE_NAME = 'randolf-beads-f7cc2ba66fc2';
+const SCOPE_PATH = new URL('./', self.registration.scope).pathname;
 const APP_SHELL = [
   './manifest.webmanifest',
-  './offline.html',
   './app-icon.svg',
   './app-icon-192.png',
   './app-icon-512.png',
   './legal.css',
   './privacy.html',
+  './privacy.en.html',
   './terms.html',
+  './terms.en.html',
   './LICENSE.txt',
   './NOTICE.txt',
   './version.json',
@@ -42,7 +44,8 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin || !url.pathname.startsWith(new URL(self.registration.scope).pathname)) return;
+  if (url.origin !== self.location.origin) return;
+  if (!url.pathname.startsWith(SCOPE_PATH)) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(

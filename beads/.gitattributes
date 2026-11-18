@@ -1,2 +1,2 @@
-# Preserve the pinned upstream tree byte for byte, including Markdown line breaks.
-upstream/** -whitespace
+# Keep generated source maps readable in reviews.
+*.map text

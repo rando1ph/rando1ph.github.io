@@ -8,7 +8,7 @@ const draftKey = 'randolf:beads:draft:v2';
 test.beforeEach(async ({ page }) => {
   page.on('dialog', dialog => dialog.accept());
   // Exercise the cross-browser download fallback; native OS save dialogs cannot
-  // be operated by headless Playwright. The upstream picker path stays intact.
+  // be operated by headless Playwright. The native picker path stays intact.
   await page.addInitScript(() => { window.showSaveFilePicker = undefined; });
 });
 async function ready(page) {
@@ -29,7 +29,7 @@ async function downloadBytes(page, action) {
   return { name: download.suggestedFilename(), bytes: await readFile(await download.path()) };
 }
 
-test('Simplified Chinese, navigation, local sample and 82 upstream browser regressions', async ({ page }) => {
+test('Simplified Chinese, navigation, local sample and browser regressions', async ({ page }) => {
   const errors = [], messages = [], network = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => messages.push(message.text()));
@@ -59,12 +59,33 @@ test('tool status messages are translated instead of displaying dictionary keys'
   await expect(page.locator('#statusMessage')).toContainText('取色工具');
 });
 
+test('PWA resources stay scoped to /beads/ and mobile help remains reachable', async ({ page }, info) => {
+  await page.goto('/beads/');
+  const manifest = await (await page.request.get('/beads/manifest.webmanifest')).json();
+  expect(new URL(manifest.start_url, 'http://127.0.0.1:4180/beads/').pathname).toBe('/beads/');
+  expect(new URL(manifest.scope, 'http://127.0.0.1:4180/beads/').pathname).toBe('/beads/');
+  for (const icon of manifest.icons) {
+    const response = await page.request.get(new URL(icon.src, 'http://127.0.0.1:4180/beads/').toString());
+    expect(response.ok()).toBe(true);
+  }
+  const serviceWorker = await (await page.request.get('/beads/sw.js')).text();
+  expect(serviceWorker).toMatch(/randolf-beads-[a-f0-9]{12}/);
+  expect(serviceWorker).toContain("new URL('./', self.registration.scope).pathname");
+  if (info.project.name === 'mobile') {
+    const help = page.locator('[data-mobile-action="product-help"]');
+    await expect(help).toBeVisible();
+    await help.click();
+    await expect(page.locator('#productDialog')).toBeVisible();
+    await page.locator('#productCloseBtn').click();
+  }
+});
+
 test('real image converts locally and exports a printable PNG and editable project', async ({ page }, info) => {
   const mobile = info.project.name === 'mobile';
   const requests = [];
   page.on('request', request => { if (/^https?:/.test(request.url())) requests.push(request); });
   await page.goto('/beads/');
-  await page.locator('#imageInput').setInputFiles(resolve('upstream/tests/fixtures/rocket-badge.png'));
+  await page.locator('#imageInput').setInputFiles(resolve('tests/fixtures/rocket-badge.png'));
   await ready(page);
   await openTools(page, mobile);
   await page.locator('[data-size="24"]').click();
@@ -204,6 +225,11 @@ test('responsive navigation and panels fit narrow phones, tablets and desktops',
       await page.keyboard.press('Escape');
       await expect(page.locator('#controlPanel')).not.toHaveAttribute('data-mobile-open', 'true');
     }
+    if (width <= 560) {
+      await expect(page.locator('#undoBtn')).toBeVisible();
+      await expect(page.locator('#redoBtn')).toBeVisible();
+      await expect(page.locator('.zoom-control')).toBeVisible();
+    }
     await page.screenshot({ path: info.outputPath(`layout-${width}.png`), fullPage: true });
   }
 });
@@ -220,7 +246,7 @@ test('homepage and every existing site navigation link to the studio', async ({ 
   await expect(page.locator('#trySampleBtn')).toBeVisible();
 });
 
-test('share-card PNG and browser print retain full upstream output', async ({ page }, info) => {
+test('share-card PNG and browser print retain complete output', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'desktop output workflow');
   await page.goto('/beads/');
   await page.locator('#trySampleBtn').click();
